@@ -6,10 +6,10 @@
  * ============================================================ */
 
 // 当前 guest-portal 的最新访问地址（cpolar 免费版隧道，重启会变）
-window.LATEST_URL = "https://522b8cf9.r5.cpolar.top/";
+window.LATEST_URL = "https://3dd4f9a5.r5.cpolar.top/";
 
 // 管理后台地址（随机化文件名，防扫描；可留空表示不展示）
-window.ADMIN_URL = "https://522b8cf9.r5.cpolar.top/portal-admin-2cc37dbcb72d.html";
+window.ADMIN_URL = "https://3dd4f9a5.r5.cpolar.top/portal-admin-2cc37dbcb72d.html";
 
 // 最近一次更新此文件的时间（自动填，可留空）
-window.LATEST_UPDATED = "2026-08-15 13:54";
+window.LATEST_UPDATED = "2026-10-01 20:52";
