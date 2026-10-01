@@ -3,13 +3,15 @@
  * 这个文件是「唯一需要更新」的地方：
  *   当 cpolar 公网隧道地址变化时，把下面 LATEST_URL 改成最新地址，
  *   再 push 到 GitHub 仓库，页面会自动更新显示新地址。
+ *   若要把访客直接带入门户（跳过本页），把 LATEST_URL 设为门户地址，
+ *   并在 index.html 里把主按钮文案改为「进入访客门户」。
  * ============================================================ */
 
-// 当前 guest-portal 的最新访问地址（cpolar 免费版隧道，重启会变）
+// 当前访客门户入口（直接开门户地址，朋友不走中转页）
 window.LATEST_URL = "https://3dd4f9a5.r5.cpolar.top/";
 
 // 管理后台地址（随机化文件名，防扫描；可留空表示不展示）
 window.ADMIN_URL = "https://3dd4f9a5.r5.cpolar.top/portal-admin-2cc37dbcb72d.html";
 
 // 最近一次更新此文件的时间（自动填，可留空）
-window.LATEST_UPDATED = "2026-10-01 20:52";
+window.LATEST_UPDATED = "2026-10-01 21:00";
