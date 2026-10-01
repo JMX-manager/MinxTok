@@ -140,6 +140,9 @@
   if(admin){
     adminBtn.href = admin;
     adminBtn.style.display = "block";
+    // 主入口也直接指向管理后台（管理端新页面）
+    a.href = admin;
+    a.textContent = "进入管理后台 →";
   }
 
   document.getElementById('copy').addEventListener('click', function(){
