@@ -33,6 +33,13 @@
   .logo{font-size:21px; font-weight:800; letter-spacing:.4px; background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;}
   .zh{font-size:13px; color:var(--muted); font-weight:600;}
   .badge{font-size:11px; font-weight:600; color:#fff; background:var(--grad); padding:4px 9px; border-radius:20px;}
+  .top-right{display:flex; align-items:center; gap:8px;}
+  .themebtn{
+    width:32px; height:32px; border-radius:50%; border:1px solid var(--line); background:var(--card);
+    color:var(--main); font-size:15px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition:transform .15s, background .2s;
+  }
+  .themebtn:active{transform:scale(.92);}
 
   .wrap{width:100%; max-width:560px;}
 
@@ -88,7 +95,10 @@
     <div class="brand">
       <span class="logo">𝗠𝗶𝗻𝘅𝗧𝗼𝗸</span><span class="zh">明叙</span>
     </div>
-    <span class="badge">访客门户 · 通道路由</span>
+    <div class="top-right">
+      <span class="badge">访客门户 · 通道路由</span>
+      <button class="themebtn" id="themeBtn" title="切换深色/浅色">☾</button>
+    </div>
   </div>
 
   <div class="wrap">
@@ -123,6 +133,21 @@
 <script src="config.js"></script>
 <script>
 (function(){
+  /* ---------- 深色模式：跟随系统 + 手动切换 ---------- */
+  var THEME_KEY='mingxu-theme';
+  function sysDark(){ return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
+  function pref(){ try{ return localStorage.getItem(THEME_KEY)||'auto'; }catch(e){ return 'auto'; } }
+  function isDark(){ var p=pref(); return p==='auto'? sysDark() : p==='dark'; }
+  function applyTheme(){ document.documentElement.setAttribute('data-theme', isDark()?'dark':'light'); var b=document.getElementById('themeBtn'); if(b) b.textContent = isDark()?'☀':'☾'; }
+  applyTheme();
+  if(window.matchMedia){
+    try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){ if(pref()==='auto') applyTheme(); }); }catch(e){}
+  }
+  document.addEventListener('DOMContentLoaded',function(){
+    var tb=document.getElementById('themeBtn');
+    if(tb){ tb.addEventListener('click',function(){ try{ localStorage.setItem(THEME_KEY, isDark()?'light':'dark'); }catch(e){} applyTheme(); }); }
+  });
+
   var url = (window.LATEST_URL || "").trim();
   var admin = (window.ADMIN_URL || "").trim();
   var a = document.getElementById('go');
