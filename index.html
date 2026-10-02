@@ -331,16 +331,8 @@ body>*{position:relative; z-index:1;}
   }
   var FAILS = ['信号不在覆盖范围', '通道未授权', '无法锁定该节点'];
 
-  // 通行密钥格式（例：MXK-7f3a91c4d2e8）→ 输入即可免答密问题，自动收起 02
-  var PASS_RE = /^MXK-[0-9a-f]{8,}$/i;
-  function syncRow2(){
-    if(!admRow2) return;
-    var isPass = PASS_RE.test((admKey.value||'').trim());
-    admRow2.classList.toggle('hide', isPass);
-    if(isPass && document.activeElement === admQa){ try{ admGo.focus(); }catch(e){} }
-  }
-  admKey.addEventListener('input', syncRow2);
-  admKey.addEventListener('change', syncRow2);
+  // 01 = Root Key（底钥），02 = EMA Key（今日瞬时钥）：两把都必须对
+  function syncRow2(){ }   // 保留占位，行不再折叠
 
   function openAdm(){ adm.classList.add('on'); admMsg.textContent=''; admKey.value=''; if(admQa) admQa.value=''; syncRow2(); setTimeout(function(){ try{admKey.focus();}catch(e){} }, 240); }
   function closeAdm(){ adm.classList.remove('on'); }
@@ -348,15 +340,14 @@ body>*{position:relative; z-index:1;}
   admOpen.addEventListener('click', openAdm);
   admBack.addEventListener('click', closeAdm);
   adm.addEventListener('click', function(e){ if(e.target===adm) closeAdm(); });
-  admKey.addEventListener('keydown', function(e){ if(e.key==='Enter'){ if(PASS_RE.test(admKey.value.trim())){ admGo.click(); } else { try{admQa.focus();}catch(err){} } } });
+  admKey.addEventListener('keydown', function(e){ if(e.key==='Enter'){ try{admQa.focus();}catch(err){} } });
   if(admQa) admQa.addEventListener('keydown', function(e){ if(e.key==='Enter') admGo.click(); });
 
   admGo.addEventListener('click', function(){
     if(admGo.disabled) return;
     var v = admKey.value.trim();
-    var a = (admQa && admQa.value || '').trim().toLowerCase();
-    var isPass = PASS_RE.test(v);
-    if(!v || (!isPass && a !== '三鲜水饺')){
+    var a = (admQa && admQa.value || '').trim();
+    if(v !== ROOT_KEY || a !== todayKey()){
       admMsg.style.color = 'var(--bad)';
       admMsg.textContent = FAILS[Math.floor(Math.random()*FAILS.length)];
       admBox.classList.remove('shake'); void admBox.offsetWidth; admBox.classList.add('shake');
@@ -370,7 +361,7 @@ body>*{position:relative; z-index:1;}
     if(navigator.vibrate){ try{ navigator.vibrate(10); }catch(e){} }
 
     setTimeout(function(){
-      if(v === ROOT_KEY || v === PASS_KEY || v === todayKey()){
+      if(v === ROOT_KEY && a === todayKey()){
         admMsg.style.color = 'var(--text-2)';
         admMsg.textContent = '身份已确认 · 正在进入';
         var target = (window.ADMIN_URL||'').trim();
