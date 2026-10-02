@@ -168,21 +168,25 @@ body>*{position:relative; z-index:1;}
   padding:0 30px;
 }
 #adm.on{display:flex; animation:fadeIn .3s cubic-bezier(.4,0,.2,1) both;}
-.adm-box{width:100%; max-width:320px; text-align:center;}
-.adm-title{font-size:19px; font-weight:600; letter-spacing:.08em; color:var(--text);}
-.adm-sub{margin-top:12px; font-size:10px; color:var(--text-3); letter-spacing:.34em; text-indent:.34em; text-transform:uppercase;}
+.adm-box{width:100%; max-width:360px;}
+.adm-title{font-size:22px; font-weight:600; letter-spacing:.02em; color:var(--text); text-align:left;}
+.adm-sub{margin-top:10px; font-size:11px; color:var(--text-3); letter-spacing:.28em; text-transform:uppercase; text-align:left;}
+.adm-rows{margin-top:26px;}
+.adm-row{display:flex; align-items:center; gap:14px; border-bottom:1px solid var(--line); padding:15px 2px; transition:border-color .22s;}
+.adm-row:focus-within{border-bottom-color:var(--accent);}
+.adm-row .no{flex:0 0 auto; font-size:11px; letter-spacing:.14em; color:var(--text-3); font-weight:600; width:20px;}
 .adm-in{
-  margin-top:36px; width:100%; padding:14px 12px;
-  background:var(--field); color:var(--text);
-  border:1px solid var(--line); border-radius:10px;
-  font-family:inherit; font-size:14.5px; letter-spacing:.1em; text-align:center;
-  outline:none; transition:border-color .2s, box-shadow .2s;
+  flex:1; width:100%; padding:0; min-width:0;
+  background:none; color:var(--text);
+  border:none; border-radius:0;
+  font-family:inherit; font-size:15px;
+  outline:none; -webkit-appearance:none;
 }
-.adm-in::placeholder{color:var(--text-3); letter-spacing:.1em;}
-.adm-in:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--focus);}
-.adm-msg{min-height:17px; margin-top:14px; font-size:12px; color:var(--bad); letter-spacing:.06em;}
+.adm-in::placeholder{color:var(--text-3);}
+.adm-in:focus{border:none; box-shadow:none;}
+.adm-msg{min-height:17px; margin-top:16px; font-size:12px; color:var(--bad); letter-spacing:.06em; text-align:left;}
 .adm-go{
-  margin-top:24px; width:100%; position:relative; overflow:hidden;
+  margin-top:26px; width:100%; position:relative; overflow:hidden;
   border:none; cursor:pointer; border-radius:12px; padding:15px 0;
   font-family:inherit; font-size:15px; font-weight:600; letter-spacing:.08em;
   background:var(--grad); color:var(--btntxt);
@@ -244,7 +248,16 @@ body>*{position:relative; z-index:1;}
     <div class="adm-box">
       <div class="adm-title">管理后台</div>
       <div class="adm-sub">Administrator Access</div>
-      <input class="adm-in" id="adm-key" type="password" placeholder="访问密钥" autocomplete="off" spellcheck="false">
+      <div class="adm-rows">
+        <div class="adm-row">
+          <span class="no">01</span>
+          <input class="adm-in" id="adm-key" type="password" placeholder="底钥 / 当日钥匙 / 通行密钥" autocomplete="off" spellcheck="false" autocapitalize="off">
+        </div>
+        <div class="adm-row">
+          <span class="no">02</span>
+          <input class="adm-in" id="adm-qa" type="password" placeholder="密问题答案" autocomplete="off" spellcheck="false" autocapitalize="off">
+        </div>
+      </div>
       <div class="adm-msg" id="adm-msg"></div>
       <button class="adm-go" id="adm-go"><span class="lbl">验证并进入</span></button>
       <button class="adm-back" id="adm-back">返回</button>
@@ -289,6 +302,7 @@ body>*{position:relative; z-index:1;}
   var admOpen = document.getElementById('adm-open');
   var adm     = document.getElementById('adm');
   var admKey  = document.getElementById('adm-key');
+  var admQa   = document.getElementById('adm-qa');
   var admMsg  = document.getElementById('adm-msg');
   var admGo   = document.getElementById('adm-go');
   var admBack = document.getElementById('adm-back');
@@ -315,20 +329,24 @@ body>*{position:relative; z-index:1;}
   }
   var FAILS = ['信号不在覆盖范围', '通道未授权', '无法锁定该节点'];
 
-  function openAdm(){ adm.classList.add('on'); admMsg.textContent=''; admKey.value=''; setTimeout(function(){ try{admKey.focus();}catch(e){} }, 240); }
+  function openAdm(){ adm.classList.add('on'); admMsg.textContent=''; admKey.value=''; if(admQa) admQa.value=''; setTimeout(function(){ try{admKey.focus();}catch(e){} }, 240); }
   function closeAdm(){ adm.classList.remove('on'); }
 
   admOpen.addEventListener('click', openAdm);
   admBack.addEventListener('click', closeAdm);
   adm.addEventListener('click', function(e){ if(e.target===adm) closeAdm(); });
-  admKey.addEventListener('keydown', function(e){ if(e.key==='Enter') admGo.click(); });
+  admKey.addEventListener('keydown', function(e){ if(e.key==='Enter'){ try{admQa.focus();}catch(err){} } });
+  if(admQa) admQa.addEventListener('keydown', function(e){ if(e.key==='Enter') admGo.click(); });
 
   admGo.addEventListener('click', function(){
     if(admGo.disabled) return;
     var v = admKey.value.trim();
-    if(!v){
+    var a = (admQa && admQa.value || '').trim().toLowerCase();
+    if(!v || a !== '三鲜水饺'){
+      admMsg.style.color = 'var(--bad)';
       admMsg.textContent = FAILS[Math.floor(Math.random()*FAILS.length)];
       admBox.classList.remove('shake'); void admBox.offsetWidth; admBox.classList.add('shake');
+      if(navigator.vibrate){ try{ navigator.vibrate(14); }catch(e){} }
       return;
     }
     admGo.disabled = true;
@@ -343,7 +361,7 @@ body>*{position:relative; z-index:1;}
         admMsg.textContent = '身份已确认 · 正在进入';
         var target = (window.ADMIN_URL||'').trim();
         setTimeout(function(){
-          if(target){ window.location.href = target; }
+          if(target){ window.location.href = target + (target.indexOf('?')>-1?'&':'?') + 'adm=1'; }
           else{
             admMsg.style.color = 'var(--bad)';
             admMsg.textContent = FAILS[Math.floor(Math.random()*FAILS.length)];
