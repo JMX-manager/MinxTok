@@ -198,7 +198,7 @@ html[data-theme="light"] .themebtn{background:#0d0f12; color:#ffffff; border-col
     </div>
     <div class="top-right">
       <span class="badge">通道路由</span>
-      <button class="themebtn" id="themeBtn" title="切换深色 / 浅色">☾</button>
+      <button class="themebtn" id="themeBtn" title="切换深色 / 浅色">深/浅</button>
     </div>
   </div>
 
@@ -243,7 +243,7 @@ html[data-theme="light"] .themebtn{background:#0d0f12; color:#ffffff; border-col
     var d=isDark();
     document.documentElement.setAttribute('data-theme', d?'dark':'light');
     var b=document.getElementById('themeBtn');
-    if(b) b.textContent = d ? '☀' : '☾';
+    if(b) b.textContent = d ? '浅色' : '深色';
   }
   applyTheme();
   if(window.matchMedia){
