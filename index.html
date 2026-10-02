@@ -5,68 +5,50 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>MinxTok · 通道路由</title>
 <meta name="description" content="从固定入口进入明叙访客门户，一键建立通道。">
-<link rel="preload" href="fonts/PingFangSite-Regular.woff2?v=1" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/PingFangSite-Regular.woff2?v=2" as="font" type="font/woff2" crossorigin>
 <style>
 @font-face{
   font-family:"PingFangMXT";
-  src:url("fonts/PingFangSite-Regular.woff2?v=1") format("woff2");
+  src:url("fonts/PingFangSite-Regular.woff2?v=2") format("woff2");
   font-weight:100 900; font-style:normal; font-display:swap;
 }
 /* ============================================================
-   MinxTok · 明叙  —  通道路由  「墨黑 + 冷银」A 套
-   与访客端共用同一套变量与秩序
+   MinxTok · 明叙  —  通道路由
+   秩序：一屏四层，逐层加重。
+   ① 品牌（最大最亮） ② 通道（主信息） ③ 动作（唯一实心按钮）
+   ④ 从属（一行小字，最低对比）
+   其余一律去掉，靠留白和字重分级，不靠灰字的数量。
    ============================================================ */
 :root{
   --font:"PingFangMXT","PingFang SC",-apple-system,BlinkMacSystemFont,"Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
 
-  /* A 套 · 墨黑 + 冷银（深色为默认基调） */
+  /* 墨黑 + 冷银 */
   --bg:#000000;
-  --bg-soft:#0a0b0d;
   --surface:#0f1114;
-  --surface2:#15181d;
   --line:#1e2228;
-  --line-soft:#15181c;
   --text:#f2f4f7;
-  --text-2:#9ba3ae;
-  --text-3:#5f6772;
+  --text-2:#8d95a1;
+  --text-3:#4d545e;
   --accent:#c8d4e4;
-  --accent-2:#8fa3bd;
   --focus:rgba(200,212,228,.18);
-  --ok:#7fd1a6; --warn:#e0c07a; --bad:#e08a8a;
-
-  --card:#0c0e11;
-  --field:#0a0c0f;
-  --fieldline:#1e2228;
+  --bad:#e08a8a;
   --grad:linear-gradient(135deg,#dfe7f0,#9fb2c8);
   --btntxt:#08090b;
-  --glass:rgba(6,7,9,.72);
-  --glassM:rgba(12,14,17,.86);
-  --radius:14px;
+  --field:#0a0c0f;
 }
-
-/* 浅色：纸感冷灰，同一套秩序 */
 html[data-theme="light"]{
   --bg:#fbfbfc;
-  --bg-soft:#f4f5f7;
   --surface:#ffffff;
-  --surface2:#f7f8fa;
-  --line:#e8eaee;
-  --line-soft:#f0f1f4;
+  --line:#e6e9ee;
   --text:#0d0f12;
   --text-2:#5f6772;
-  --text-3:#9ba3ae;
+  --text-3:#a7aeb8;
   --accent:#1b2430;
-  --accent-2:#4a5766;
   --focus:rgba(27,36,48,.10);
-  --ok:#1f9d63; --warn:#b0812a; --bad:#c05050;
-
-  --card:#ffffff;
-  --field:#f7f8fa;
-  --fieldline:#e8eaee;
+  --bad:#c05050;
   --grad:linear-gradient(135deg,#1b2430,#3a4657);
   --btntxt:#ffffff;
-  --glass:rgba(251,251,252,.76);
-  --glassM:rgba(255,255,255,.9);
+  --field:#f6f7f9;
 }
 
 *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
@@ -76,11 +58,10 @@ body{
   background:var(--bg); color:var(--text);
   min-height:100vh; min-height:100dvh;
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding:0 22px 40px;
+  padding:0 26px 44px;
   -webkit-font-smoothing:antialiased;
   transition:background .3s cubic-bezier(.4,0,.2,1), color .3s cubic-bezier(.4,0,.2,1);
 }
-/* 绒毛褶皱底纹：与访客端同款氛围层 */
 body::before{
   content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
   background-image:
@@ -96,43 +77,46 @@ html[data-theme="light"] body::before{
 body>*{position:relative; z-index:1;}
 
 .wrap{
-  width:100%; max-width:420px;
+  width:100%; max-width:400px;
   display:flex; flex-direction:column; align-items:center;
   text-align:center;
-  padding-top:8vh;
+  padding-top:6vh;
 }
 
-/* ---------- 品牌 ---------- */
+/* ---------- ① 品牌 ---------- */
 .logo{
-  font-size:22px; font-weight:600; letter-spacing:.06em;
-  color:var(--text);
+  font-size:26px; font-weight:600; letter-spacing:.04em;
+  color:var(--text); line-height:1.2;
   animation:up .7s cubic-bezier(.2,.9,.3,1.02) both;
 }
 .sub{
-  margin-top:10px; font-size:12px; color:var(--text-3); letter-spacing:.24em;
+  margin-top:9px; font-size:11px; color:var(--text-2); letter-spacing:.3em; text-indent:.3em;
   animation:up .7s .06s cubic-bezier(.2,.9,.3,1.02) both;
 }
 @keyframes up{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
 
-/* ---------- 通道状态 ---------- */
+/* ---------- ② 通道（主信息，用一条实线起头） ---------- */
 .channel{
-  margin-top:38px; width:100%;
+  margin-top:52px; width:100%; text-align:left;
   animation:up .7s .12s cubic-bezier(.2,.9,.3,1.02) both;
 }
-.ch-kind{font-size:11px; color:var(--text-3); letter-spacing:.2em; margin-bottom:10px;}
+.ch-kind{
+  font-size:10px; color:var(--text-2); letter-spacing:.34em; text-indent:.34em;
+}
 .ch-url{
-  font-size:13px; color:var(--text-2); word-break:break-all; line-height:1.6;
-  font-family:var(--font); letter-spacing:.02em;
-  padding:0 4px; min-height:20px;
+  margin-top:14px; padding-top:14px;
+  border-top:1px solid var(--line);
+  font-size:15px; font-weight:500; color:var(--text); line-height:1.55;
+  word-break:break-all; letter-spacing:.01em;
 }
 
-/* ---------- 进入按钮 ---------- */
+/* ---------- ③ 动作（全场唯一实心） ---------- */
 .enter{
-  margin-top:30px; width:100%;
+  margin-top:44px; width:100%;
   position:relative; overflow:hidden;
   border:none; cursor:pointer; border-radius:12px;
-  padding:15px 0; font-family:inherit;
-  font-size:15px; font-weight:600; letter-spacing:.06em;
+  padding:16px 0; font-family:inherit;
+  font-size:15.5px; font-weight:600; letter-spacing:.06em;
   background:var(--grad); color:var(--btntxt);
   transition:transform .18s cubic-bezier(.2,.9,.3,1.06), opacity .2s;
   animation:up .7s .18s cubic-bezier(.2,.9,.3,1.02) both;
@@ -148,58 +132,57 @@ body>*{position:relative; z-index:1;}
 .enter.busy .sheen{animation:sweep .95s cubic-bezier(.4,0,.2,1) infinite;}
 @keyframes sweep{to{transform:translateX(360%);}}
 .enter .lbl{position:relative; z-index:1;}
-
-/* 隐藏的跳转链接（由按钮触发） */
 #go{display:none;}
 
-/* ---------- 底部说明（一行小字） ---------- */
+/* ---------- ④ 从属（一行，最低对比，绝不铺开） ---------- */
 .foot{
-  margin-top:30px; width:100%;
-  display:flex; align-items:center; justify-content:center; gap:14px;
+  margin-top:34px; width:100%;
+  display:flex; align-items:center; justify-content:center; gap:10px;
   animation:up .7s .24s cubic-bezier(.2,.9,.3,1.02) both;
 }
-.foot .meta{font-size:11px; color:var(--text-3); letter-spacing:.08em;}
-.foot .dotsep{width:3px; height:3px; border-radius:50%; background:var(--text-3); opacity:.6;}
+.foot .meta{font-size:10.5px; color:var(--text-3); letter-spacing:.16em;}
+.foot .dotsep{width:2px; height:2px; border-radius:50%; background:var(--text-3);}
 .tglink{
   background:none; border:none; padding:0; cursor:pointer; font-family:inherit;
-  font-size:11px; color:var(--text-3); letter-spacing:.08em;
-  border-bottom:1px solid transparent; transition:color .2s, border-color .2s;
+  font-size:10.5px; color:var(--text-3); letter-spacing:.16em;
+  transition:color .2s;
 }
-.tglink:hover{color:var(--text-2); border-bottom-color:currentColor;}
-
-/* ---------- 管理后台入口 ---------- */
+.tglink:hover{color:var(--text-2);}
+.tglink:active{color:var(--text);}
+.foot .sep{color:var(--text-3); font-size:10.5px; letter-spacing:.16em;}
 .adm{
-  margin-top:20px; font-size:11.5px; color:var(--text-3); letter-spacing:.14em;
-  cursor:pointer; padding:6px 2px;
-  border-bottom:1px solid transparent; transition:color .2s, border-color .2s;
-  animation:up .7s .27s cubic-bezier(.2,.9,.3,1.02) both;
+  background:none; border:none; padding:0; cursor:pointer; font-family:inherit;
+  font-size:10.5px; color:var(--text-3); letter-spacing:.16em;
+  transition:color .2s;
 }
-.adm:hover{color:var(--text-2); border-bottom-color:currentColor;}
+.adm:hover{color:var(--text-2);}
+.adm:active{color:var(--text);}
 
 /* ---------- 管理后台登录弹层 ---------- */
 #adm{
   position:fixed; inset:0; z-index:120;
   background:var(--bg);
   display:none; align-items:center; justify-content:center;
-  padding:0 26px;
+  padding:0 30px;
 }
 #adm.on{display:flex; animation:fadeIn .3s cubic-bezier(.4,0,.2,1) both;}
-.adm-box{width:100%; max-width:340px; text-align:center;}
-.adm-title{font-size:17px; font-weight:600; letter-spacing:.1em; color:var(--text);}
-.adm-sub{margin-top:8px; font-size:10.5px; color:var(--text-3); letter-spacing:.3em; text-transform:uppercase;}
+.adm-box{width:100%; max-width:320px; text-align:center;}
+.adm-title{font-size:19px; font-weight:600; letter-spacing:.08em; color:var(--text);}
+.adm-sub{margin-top:12px; font-size:10px; color:var(--text-3); letter-spacing:.34em; text-indent:.34em; text-transform:uppercase;}
 .adm-in{
-  margin-top:30px; width:100%; padding:13px 12px;
+  margin-top:36px; width:100%; padding:14px 12px;
   background:var(--field); color:var(--text);
-  border:1px solid var(--fieldline); border-radius:10px;
-  font-family:inherit; font-size:14px; letter-spacing:.1em; text-align:center;
+  border:1px solid var(--line); border-radius:10px;
+  font-family:inherit; font-size:14.5px; letter-spacing:.1em; text-align:center;
   outline:none; transition:border-color .2s, box-shadow .2s;
 }
+.adm-in::placeholder{color:var(--text-3); letter-spacing:.1em;}
 .adm-in:focus{border-color:var(--accent); box-shadow:0 0 0 3px var(--focus);}
-.adm-msg{min-height:16px; margin-top:12px; font-size:11.5px; color:var(--bad); letter-spacing:.06em;}
+.adm-msg{min-height:17px; margin-top:14px; font-size:12px; color:var(--bad); letter-spacing:.06em;}
 .adm-go{
-  margin-top:6px; width:100%; position:relative; overflow:hidden;
-  border:none; cursor:pointer; border-radius:11px; padding:14px 0;
-  font-family:inherit; font-size:14.5px; font-weight:600; letter-spacing:.08em;
+  margin-top:24px; width:100%; position:relative; overflow:hidden;
+  border:none; cursor:pointer; border-radius:12px; padding:15px 0;
+  font-family:inherit; font-size:15px; font-weight:600; letter-spacing:.08em;
   background:var(--grad); color:var(--btntxt);
   transition:transform .18s cubic-bezier(.2,.9,.3,1.06), opacity .2s;
 }
@@ -214,15 +197,15 @@ body>*{position:relative; z-index:1;}
 .adm-go.busy .sheen{animation:sweep .95s cubic-bezier(.4,0,.2,1) infinite;}
 .adm-go .lbl{position:relative; z-index:1;}
 .adm-back{
-  margin-top:22px; font-size:11.5px; color:var(--text-3); letter-spacing:.14em;
-  cursor:pointer; display:inline-block;
-  border-bottom:1px solid transparent; transition:color .2s, border-color .2s;
+  margin-top:30px; background:none; border:none; padding:0; cursor:pointer; font-family:inherit;
+  font-size:11px; color:var(--text-2); letter-spacing:.2em;
+  display:inline-block; transition:color .2s;
 }
-.adm-back:hover{color:var(--text-2); border-bottom-color:currentColor;}
+.adm-back:hover{color:var(--text);}
 .adm-box.shake{animation:admshake .42s cubic-bezier(.36,.07,.19,.97) both;}
 @keyframes admshake{10%,90%{transform:translateX(-2px);} 20%,80%{transform:translateX(3px);} 30%,50%,70%{transform:translateX(-5px);} 40%,60%{transform:translateX(5px);}}
 
-/* ---------- 建立连接遮罩（神秘感） ---------- */
+/* ---------- 建立连接遮罩 ---------- */
 #link{
   position:fixed; inset:0; z-index:100;
   background:var(--bg);
@@ -238,11 +221,11 @@ body>*{position:relative; z-index:1;}
 }
 @keyframes spin{to{transform:rotate(360deg);}}
 #link .word{
-  margin-top:22px; font-size:13px; color:var(--text-2); letter-spacing:.16em;
+  margin-top:24px; font-size:13px; color:var(--text-2); letter-spacing:.18em;
   min-height:20px;
 }
 #link .prog{
-  margin-top:16px; width:120px; height:1px; background:var(--line); overflow:hidden;
+  margin-top:18px; width:120px; height:1px; background:var(--line); overflow:hidden;
 }
 #link .prog i{display:block; height:100%; width:0; background:var(--text); transition:width .5s cubic-bezier(.4,0,.2,1);}
 </style>
@@ -263,12 +246,12 @@ body>*{position:relative; z-index:1;}
       <span class="lbl">进入通道</span>
     </button>
 
-    <div class="adm" id="adm-open">管理后台</div>
-
     <div class="foot">
       <span class="meta" id="foot-meta">在线</span>
       <span class="dotsep"></span>
       <button class="tglink" id="tglink">深浅色</button>
+      <span class="sep">·</span>
+      <button class="adm" id="adm-open">管理后台</button>
     </div>
   </div>
 
@@ -289,7 +272,7 @@ body>*{position:relative; z-index:1;}
       <input class="adm-in" id="adm-key" type="password" placeholder="访问密钥" autocomplete="off" spellcheck="false">
       <div class="adm-msg" id="adm-msg"></div>
       <button class="adm-go" id="adm-go"><span class="lbl">验证并进入</span></button>
-      <div class="adm-back" id="adm-back">返回</div>
+      <button class="adm-back" id="adm-back">返回</button>
     </div>
   </div>
 
@@ -357,7 +340,7 @@ body>*{position:relative; z-index:1;}
     }
     admGo.disabled = true;
     admGo.classList.add('busy');
-    admMsg.style.color = 'var(--text-3)';
+    admMsg.style.color = 'var(--text-2)';
     admMsg.textContent = '正在核实凭据…';
     if(navigator.vibrate){ try{ navigator.vibrate(10); }catch(e){} }
 
