@@ -205,29 +205,19 @@ body>*{position:relative; z-index:1;}
 .adm-box.shake{animation:admshake .42s cubic-bezier(.36,.07,.19,.97) both;}
 @keyframes admshake{10%,90%{transform:translateX(-2px);} 20%,80%{transform:translateX(3px);} 30%,50%,70%{transform:translateX(-5px);} 40%,60%{transform:translateX(5px);}}
 
-/* ---------- 建立连接遮罩 ---------- */
+/* ---------- 建立连接后的跳转等待 ---------- */
+@keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
 #link{
   position:fixed; inset:0; z-index:100;
   background:var(--bg);
-  display:none; flex-direction:column; align-items:center; justify-content:center;
+  display:none; align-items:center; justify-content:center;
   padding:0 40px; text-align:center;
 }
 #link.on{display:flex; animation:fadeIn .35s cubic-bezier(.4,0,.2,1) both;}
-@keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
-#link .ring{
-  width:46px; height:46px; border-radius:50%;
-  border:1px solid var(--line); border-top-color:var(--text);
-  animation:spin 1.05s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg);}}
 #link .word{
-  margin-top:24px; font-size:13px; color:var(--text-2); letter-spacing:.18em;
+  font-size:13px; color:var(--text-2); letter-spacing:.18em;
   min-height:20px;
 }
-#link .prog{
-  margin-top:18px; width:120px; height:1px; background:var(--line); overflow:hidden;
-}
-#link .prog i{display:block; height:100%; width:0; background:var(--text); transition:width .5s cubic-bezier(.4,0,.2,1);}
 </style>
 </head>
 <body>
@@ -259,9 +249,7 @@ body>*{position:relative; z-index:1;}
 
   <!-- 建立连接遮罩 -->
   <div id="link">
-    <div class="ring"></div>
     <div class="word" id="link-word"></div>
-    <div class="prog"><i id="link-prog"></i></div>
   </div>
 
   <!-- 管理后台：登录（失败不暴露后台地址） -->
@@ -367,39 +355,22 @@ body>*{position:relative; z-index:1;}
     }, 760);
   });
 
-  /* ---------- 建立连接：先蓄势，再跳转 ---------- */
+  /* ---------- 进入通道：蓄势一下再跳转（转圈动画在用户端加载页） ---------- */
   var btn = document.getElementById('enter');
   var lblEl = btn.querySelector('.lbl');
   var link = document.getElementById('link');
   var word = document.getElementById('link-word');
-  var prog = document.getElementById('link-prog');
-
-  var STEPS = ['正在建立通道…', '验证路由…', '握手中…', '准备进入…'];
 
   btn.addEventListener('click', function(){
     if(!url || btn.disabled) return;
     btn.disabled = true;
     btn.classList.add('busy');
-    lblEl.textContent = '建立中';
+    lblEl.textContent = '正在进入';
     if(navigator.vibrate) { try{ navigator.vibrate(10); }catch(e){} }
 
     link.classList.add('on');
-    var i = 0;
-    word.textContent = STEPS[0];
-    prog.style.width = '22%';
-
-    var t = setInterval(function(){
-      i++;
-      if(i < STEPS.length){
-        word.textContent = STEPS[i];
-        prog.style.width = (22 + i*24) + '%';
-      }else{
-        clearInterval(t);
-        prog.style.width = '100%';
-        word.textContent = '通道就绪';
-        setTimeout(function(){ window.location.href = url; }, 420);
-      }
-    }, 620);
+    word.textContent = '正在连接…';
+    setTimeout(function(){ window.location.href = url; }, 420);
   });
 })();
 </script>
