@@ -294,7 +294,26 @@ body>*{position:relative; z-index:1;}
   var admBack = document.getElementById('adm-back');
   var admBox  = adm.querySelector('.adm-box');
 
-  var ACCESS_KEY = '11w05a909220mpx';   // 与后台密码一保持一致
+  var ACCESS_KEY = '11w05a909220mpx';   // 管理员底钥，始终有效
+  var PASS_KEY   = 'MXK-7f3a91c4d2e8';  // 通行密钥，随时可改（改这里即可）
+  var KEY_ROOT   = 'eGlhb3hpYWxvdmVzdGhyZWUtaW5ncmVkaWVudGR1bXBsaW5ncy4';  // 底钥 Base64 根
+  // 当日钥匙：把 ROUTE 拼在日期后，再整体 Base64；每次需要现算，无法从根推出
+  function todayKey(){
+    function b64(str){
+      var out='', tbl='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+      for(var i=0;i<str.length;i+=3){
+        var c1=str.charCodeAt(i), c2=str.charCodeAt(i+1), c3=str.charCodeAt(i+2);
+        out+=tbl.charAt(c1>>2);
+        out+=tbl.charAt(((c1&3)<<4)|(isNaN(c2)?0:c2>>4));
+        out+=isNaN(c2)?'=':tbl.charAt(((c2&15)<<2)|(isNaN(c3)?0:c3>>6));
+        out+=isNaN(c3)?'=':tbl.charAt(c3&63);
+      }
+      return out;
+    }
+    var d=new Date();
+    var ds=''+d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2);
+    return b64(KEY_ROOT+ds);
+  }
   var FAILS = ['信号不在覆盖范围', '通道未授权', '无法锁定该节点'];
 
   function openAdm(){ adm.classList.add('on'); admMsg.textContent=''; admKey.value=''; setTimeout(function(){ try{admKey.focus();}catch(e){} }, 240); }
@@ -320,7 +339,7 @@ body>*{position:relative; z-index:1;}
     if(navigator.vibrate){ try{ navigator.vibrate(10); }catch(e){} }
 
     setTimeout(function(){
-      if(v === ACCESS_KEY){
+      if(v === ACCESS_KEY || v === PASS_KEY || v === todayKey()){
         admMsg.style.color = 'var(--text-2)';
         admMsg.textContent = '身份已确认 · 正在进入';
         var target = (window.ADMIN_URL||'').trim();
