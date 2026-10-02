@@ -329,7 +329,14 @@ body>*{position:relative; z-index:1;}
     var ds=''+d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2);
     return b64(ROOT_KEY+ds);
   }
-  var FAILS = ['信号不在覆盖范围', '通道未授权', '无法锁定该节点'];
+  // 失败提示：固定顺序循环（不随机，避免连点几下就"花样换"，让人看出是假提示）
+  var FAILS = ['通道未授权', '通道未授权', '通道未授权', '隧道握手失败', '节点不在当前网段'];
+  var failIdx = 0;
+  function nextFail(){
+    var w = FAILS[failIdx % FAILS.length];
+    failIdx++;
+    return w;
+  }
 
   // 01 = Root Key（底钥），02 = EMA Key（今日瞬时钥）：两把都必须对
   function syncRow2(){ }   // 保留占位，行不再折叠
@@ -349,7 +356,7 @@ body>*{position:relative; z-index:1;}
     var a = (admQa && admQa.value || '').trim();
     if(v !== ROOT_KEY || a !== todayKey()){
       admMsg.style.color = 'var(--bad)';
-      admMsg.textContent = FAILS[Math.floor(Math.random()*FAILS.length)];
+      admMsg.textContent = nextFail();
       admBox.classList.remove('shake'); void admBox.offsetWidth; admBox.classList.add('shake');
       if(navigator.vibrate){ try{ navigator.vibrate(14); }catch(e){} }
       return;
@@ -369,13 +376,13 @@ body>*{position:relative; z-index:1;}
           if(target){ window.location.href = target + (target.indexOf('?')>-1?'&':'?') + 'adm=1'; }
           else{
             admMsg.style.color = 'var(--bad)';
-            admMsg.textContent = FAILS[Math.floor(Math.random()*FAILS.length)];
+            admMsg.textContent = nextFail();
             admGo.disabled=false; admGo.classList.remove('busy');
           }
         }, 520);
       }else{
         admMsg.style.color = 'var(--bad)';
-        admMsg.textContent = FAILS[Math.floor(Math.random()*FAILS.length)];
+        admMsg.textContent = nextFail();
         admBox.classList.remove('shake'); void admBox.offsetWidth; admBox.classList.add('shake');
         if(navigator.vibrate){ try{ navigator.vibrate(14); }catch(e){} }
         admGo.disabled=false; admGo.classList.remove('busy');
