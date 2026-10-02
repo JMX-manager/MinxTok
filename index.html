@@ -4,14 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
 <title>MinxTok · 通道路由</title>
-<meta name="description" content="明叙访客门户的固定入口，从这里一键进入当前最新可用的访问地址。">
+<meta name="description" content="从固定入口进入明叙访客门户，一键建立通道。">
+<link rel="preload" href="fonts/PingFangSite-Regular.woff2?v=1" as="font" type="font/woff2" crossorigin>
 <style>
+@font-face{
+  font-family:"PingFangMXT";
+  src:url("fonts/PingFangSite-Regular.woff2?v=1") format("woff2");
+  font-weight:400; font-style:normal; font-display:swap;
+}
 /* ============================================================
    MinxTok · 明叙  —  通道路由  「墨黑 + 冷银」A 套
    与访客端共用同一套变量与秩序
    ============================================================ */
 :root{
-  --font:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+  --font:"PingFangMXT","PingFang SC",-apple-system,BlinkMacSystemFont,"Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
 
   /* A 套 · 墨黑 + 冷银（深色为默认基调） */
   --bg:#000000;
@@ -32,10 +38,7 @@
   --field:#0a0c0f;
   --fieldline:#1e2228;
   --grad:linear-gradient(135deg,#dfe7f0,#9fb2c8);
-  --grad-txt:linear-gradient(135deg,#ffffff,#a8b8cc);
-  --shadow:none;
   --btntxt:#08090b;
-  --navbg:rgba(0,0,0,.72);
   --glass:rgba(6,7,9,.72);
   --glassM:rgba(12,14,17,.86);
   --radius:14px;
@@ -61,10 +64,7 @@ html[data-theme="light"]{
   --field:#f7f8fa;
   --fieldline:#e8eaee;
   --grad:linear-gradient(135deg,#1b2430,#3a4657);
-  --grad-txt:linear-gradient(135deg,#0d0f12,#39424f);
-  --shadow:0 1px 3px rgba(16,24,40,.05);
   --btntxt:#ffffff;
-  --navbg:rgba(251,251,252,.78);
   --glass:rgba(251,251,252,.76);
   --glassM:rgba(255,255,255,.9);
 }
@@ -75,8 +75,8 @@ body{
   font-family:var(--font);
   background:var(--bg); color:var(--text);
   min-height:100vh; min-height:100dvh;
-  display:flex; flex-direction:column; align-items:center;
-  padding:0 18px 44px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:0 22px 40px;
   -webkit-font-smoothing:antialiased;
   transition:background .3s cubic-bezier(.4,0,.2,1), color .3s cubic-bezier(.4,0,.2,1);
 }
@@ -95,141 +95,134 @@ html[data-theme="light"] body::before{
 }
 body>*{position:relative; z-index:1;}
 
-/* ---------- 顶部品牌条（磨砂玻璃，与访客端 nav 一致） ---------- */
-.top{
-  width:100%; max-width:560px; height:52px;
-  display:flex; align-items:center; justify-content:space-between;
-  padding:0 2px;
+.wrap{
+  width:100%; max-width:420px;
+  display:flex; flex-direction:column; align-items:center;
+  text-align:center;
+  padding-top:8vh;
 }
-.brand{display:flex; align-items:baseline; gap:8px;}
+
+/* ---------- 品牌 ---------- */
 .logo{
-  font-size:16px; font-weight:600; letter-spacing:.04em;
-  background:var(--grad-txt); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+  font-size:22px; font-weight:600; letter-spacing:.06em;
+  color:var(--text);
+  animation:up .7s cubic-bezier(.2,.9,.3,1.02) both;
 }
-.zh{font-size:11px; color:var(--text-3); letter-spacing:.2em;}
-.top-right{display:flex; align-items:center; gap:8px;}
-.badge{
-  font-size:10.5px; font-weight:600; letter-spacing:.06em;
-  color:var(--text-2); background:var(--surface2);
-  border:1px solid var(--line); padding:4px 9px; border-radius:20px;
+.sub{
+  margin-top:10px; font-size:12px; color:var(--text-3); letter-spacing:.24em;
+  animation:up .7s .06s cubic-bezier(.2,.9,.3,1.02) both;
+}
+@keyframes up{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+
+/* ---------- 通道状态 ---------- */
+.channel{
+  margin-top:38px; width:100%;
+  animation:up .7s .12s cubic-bezier(.2,.9,.3,1.02) both;
+}
+.ch-kind{font-size:11px; color:var(--text-3); letter-spacing:.2em; margin-bottom:10px;}
+.ch-url{
+  font-size:12.5px; color:var(--text-2); word-break:break-all; line-height:1.6;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  padding:0 4px; min-height:20px;
 }
 
-/* 主题切换按钮：深色=浅银底深字；浅色=墨黑底浅字。两端都清晰可见 */
-.themebtn{
-  width:34px; height:34px; border-radius:10px; cursor:pointer;
-  display:flex; align-items:center; justify-content:center;
-  font-size:15px; line-height:1; padding:0;
-  background:var(--text); color:var(--bg); border:1px solid var(--text);
-  transition:transform .16s cubic-bezier(.2,.9,.3,1.06), opacity .18s;
-}
-.themebtn:hover{opacity:.86;}
-.themebtn:active{transform:scale(.9);}
-html[data-theme="light"] .themebtn{background:#0d0f12; color:#ffffff; border-color:#0d0f12;}
-
-.wrap{width:100%; max-width:560px;}
-
-/* ---------- 主卡片 ---------- */
-.card{
-  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  padding:24px 20px; box-shadow:var(--shadow);
-  animation:cardIn .5s cubic-bezier(.2,.9,.3,1.02) both;
-}
-@keyframes cardIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
-.card h1{font-size:18px; font-weight:600; letter-spacing:.02em; margin-bottom:6px;}
-.card .sub{font-size:12.5px; color:var(--text-2); margin-bottom:20px; line-height:1.65;}
-
-/* ---------- 地址展示 ---------- */
-.urlbox{
-  display:flex; align-items:center; gap:9px; width:100%;
-  background:var(--field); border:1px solid var(--fieldline); border-radius:11px;
-  padding:12px 13px; margin-bottom:16px;
-}
-.urlbox .dot{
-  flex:none; width:7px; height:7px; border-radius:50%;
-  background:var(--ok); box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 18%,transparent);
-}
-.urlbox .url{
-  flex:1; font-size:12.5px; font-weight:500; word-break:break-all;
-  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--text);
-}
-.urlbox .st{flex:none; font-size:10.5px; color:var(--text-3); letter-spacing:.04em;}
-
-/* ---------- 按钮：实心渐变，两端都清晰 ---------- */
-.btn{
-  display:block; width:100%; text-align:center; text-decoration:none;
-  border-radius:11px; padding:14px 0; font-size:15px; font-weight:600;
-  letter-spacing:.04em; cursor:pointer; border:none;
+/* ---------- 进入按钮 ---------- */
+.enter{
+  margin-top:30px; width:100%;
+  position:relative; overflow:hidden;
+  border:none; cursor:pointer; border-radius:12px;
+  padding:15px 0; font-family:inherit;
+  font-size:15px; font-weight:600; letter-spacing:.06em;
   background:var(--grad); color:var(--btntxt);
-  transition:transform .16s cubic-bezier(.2,.9,.3,1.06), opacity .18s;
+  transition:transform .18s cubic-bezier(.2,.9,.3,1.06), opacity .2s;
+  animation:up .7s .18s cubic-bezier(.2,.9,.3,1.02) both;
 }
-.btn:hover{opacity:.9;}
-.btn:active{transform:scale(.983);}
-.actions{display:flex; gap:9px; margin-top:10px;}
-.actions .btn{flex:1; font-size:13.5px; padding:12px 0;}
-
-/* ---------- 通知条 ---------- */
-.notice{
-  display:none; font-size:12.5px; border-radius:10px; padding:10px 13px; margin-bottom:12px;
-  background:color-mix(in srgb,var(--ok) 10%,transparent);
-  border:1px solid color-mix(in srgb,var(--ok) 38%,transparent);
-  color:var(--ok); line-height:1.55;
+.enter:hover{opacity:.92;}
+.enter:active{transform:scale(.984);}
+.enter[disabled]{cursor:default; opacity:.75;}
+.enter .sheen{
+  position:absolute; top:0; bottom:0; width:38%;
+  background:linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
+  transform:translateX(-140%); pointer-events:none;
 }
-.notice.show{display:block; animation:in .32s cubic-bezier(.2,.9,.3,1.02);}
-@keyframes in{from{opacity:0; transform:translateY(-6px);} to{opacity:1; transform:none;}}
+.enter.busy .sheen{animation:sweep .95s cubic-bezier(.4,0,.2,1) infinite;}
+@keyframes sweep{to{transform:translateX(360%);}}
+.enter .lbl{position:relative; z-index:1;}
 
-/* ---------- 说明小字 ---------- */
-.tips{
-  font-size:11.5px; color:var(--text-3); line-height:1.85;
-  margin:22px 2px 0; letter-spacing:.01em;
-}
-.tips b{color:var(--text-2); font-weight:600;}
+/* 隐藏的跳转链接（由按钮触发） */
+#go{display:none;}
 
+/* ---------- 底部说明（一行小字） ---------- */
 .foot{
-  width:100%; max-width:560px; margin-top:auto; padding-top:22px;
-  font-size:10.5px; color:var(--text-3); text-align:center; letter-spacing:.08em;
+  margin-top:30px; width:100%;
+  display:flex; align-items:center; justify-content:center; gap:14px;
+  animation:up .7s .24s cubic-bezier(.2,.9,.3,1.02) both;
 }
+.foot .meta{font-size:11px; color:var(--text-3); letter-spacing:.08em;}
+.foot .dotsep{width:3px; height:3px; border-radius:50%; background:var(--text-3); opacity:.6;}
+.tglink{
+  background:none; border:none; padding:0; cursor:pointer; font-family:inherit;
+  font-size:11px; color:var(--text-3); letter-spacing:.08em;
+  border-bottom:1px solid transparent; transition:color .2s, border-color .2s;
+}
+.tglink:hover{color:var(--text-2); border-bottom-color:currentColor;}
+
+/* ---------- 建立连接遮罩（神秘感） ---------- */
+#link{
+  position:fixed; inset:0; z-index:100;
+  background:var(--bg);
+  display:none; flex-direction:column; align-items:center; justify-content:center;
+  padding:0 40px; text-align:center;
+}
+#link.on{display:flex; animation:fadeIn .35s cubic-bezier(.4,0,.2,1) both;}
+@keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
+#link .ring{
+  width:46px; height:46px; border-radius:50%;
+  border:1px solid var(--line); border-top-color:var(--text);
+  animation:spin 1.05s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+#link .word{
+  margin-top:22px; font-size:13px; color:var(--text-2); letter-spacing:.16em;
+  min-height:20px;
+}
+#link .prog{
+  margin-top:16px; width:120px; height:1px; background:var(--line); overflow:hidden;
+}
+#link .prog i{display:block; height:100%; width:0; background:var(--text); transition:width .5s cubic-bezier(.4,0,.2,1);}
 </style>
 </head>
 <body>
 
-  <div class="top">
-    <div class="brand">
-      <span class="logo">𝗠𝗶𝗻𝘅𝗧𝗼𝗸</span><span class="zh">明叙</span>
-    </div>
-    <div class="top-right">
-      <span class="badge">通道路由</span>
-      <button class="themebtn" id="themeBtn" title="切换深色 / 浅色">深/浅</button>
-    </div>
-  </div>
-
   <div class="wrap">
-    <div class="notice" id="notice"></div>
+    <div class="logo">𝗠𝗶𝗻𝘅𝗧𝗼𝗸</div>
+    <div class="sub">明叙 · 通道路由</div>
 
-    <div class="card">
-      <h1>进入访客门户</h1>
-      <p class="sub">这是明叙访客门户的固定入口。下方显示当前时刻可用的访问地址，点击即可进入。</p>
-
-      <div class="urlbox">
-        <span class="dot"></span>
-        <span class="url" id="url"></span>
-        <span class="st" id="st">在线</span>
-      </div>
-
-      <a class="btn" id="go" href="#" target="_blank" rel="noopener">进入访客门户</a>
-
-      <div class="actions">
-        <button class="btn" id="copy">复制地址</button>
-        <button class="btn" id="admin" style="display:none">管理后台</button>
-      </div>
+    <div class="channel">
+      <div class="ch-kind">当前通道</div>
+      <div class="ch-url" id="ch-url">正在获取…</div>
     </div>
 
-    <div class="tips">
-      <b>使用说明</b>：通道路由页的地址会随服务端公网隧道实时更新。若点击后打不开，稍等片刻刷新本页即可。<br>
-      <b>隐私声明</b>：本页仅展示访问入口，不含任何登录信息或密钥。
+    <button class="enter" id="enter">
+      <span class="sheen"></span>
+      <span class="lbl">进入通道</span>
+    </button>
+
+    <div class="foot">
+      <span class="meta" id="foot-meta">在线</span>
+      <span class="dotsep"></span>
+      <button class="tglink" id="tglink">深浅色</button>
     </div>
   </div>
 
-  <div class="foot">MINXTOK · 通道路由</div>
+  <a id="go" href="#"></a>
+
+  <!-- 建立连接遮罩 -->
+  <div id="link">
+    <div class="ring"></div>
+    <div class="word" id="link-word"></div>
+    <div class="prog"><i id="link-prog"></i></div>
+  </div>
 
 <script src="config.js"></script>
 <script>
@@ -240,67 +233,65 @@ html[data-theme="light"] .themebtn{background:#0d0f12; color:#ffffff; border-col
   function pref(){ try{ return localStorage.getItem(THEME_KEY)||'auto'; }catch(e){ return 'auto'; } }
   function isDark(){ var p=pref(); return p==='auto'? sysDark() : p==='dark'; }
   function applyTheme(){
-    var d=isDark();
-    document.documentElement.setAttribute('data-theme', d?'dark':'light');
-    var b=document.getElementById('themeBtn');
-    if(b) b.textContent = d ? '浅色' : '深色';
+    document.documentElement.setAttribute('data-theme', isDark()?'dark':'light');
   }
   applyTheme();
   if(window.matchMedia){
     try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){ if(pref()==='auto') applyTheme(); }); }catch(e){}
   }
-  document.addEventListener('DOMContentLoaded',function(){
-    var tb=document.getElementById('themeBtn');
-    if(tb){ tb.addEventListener('click',function(){
-      try{ localStorage.setItem(THEME_KEY, isDark()?'light':'dark'); }catch(e){}
-      applyTheme();
-    }); }
+  document.getElementById('tglink').addEventListener('click', function(){
+    try{ localStorage.setItem(THEME_KEY, isDark()?'light':'dark'); }catch(e){}
+    applyTheme();
   });
 
+  /* ---------- 通道地址 ---------- */
   var url = (window.LATEST_URL || "").trim();
-  var admin = (window.ADMIN_URL || "").trim();
-  var a = document.getElementById('go');
-  var u = document.getElementById('url');
-  var adminBtn = document.getElementById('admin');
+  var uEl = document.getElementById('ch-url');
+  var go  = document.getElementById('go');
 
   if(url){
-    u.textContent = url;
-    a.href = url;
+    uEl.textContent = url;
+    go.href = url;
   }else{
-    u.textContent = "暂未配置访问地址";
-    u.style.color = "var(--bad)";
+    uEl.textContent = "暂未配置通道地址";
+    uEl.style.color = "var(--bad)";
+    document.getElementById('foot-meta').textContent = "离线";
   }
 
-  if(admin){
-    adminBtn.style.display = "block";
-  }
+  /* ---------- 建立连接：先蓄势，再跳转 ---------- */
+  var btn = document.getElementById('enter');
+  var lblEl = btn.querySelector('.lbl');
+  var link = document.getElementById('link');
+  var word = document.getElementById('link-word');
+  var prog = document.getElementById('link-prog');
 
-  document.getElementById('copy').addEventListener('click', function(){
-    var t = url;
-    function done(){ showNotice('已复制到剪贴板'); }
-    if(navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(t).then(done, function(){ fallback(t, done); });
-    } else { fallback(t, done); }
+  var STEPS = ['正在建立通道…', '验证路由…', '握手中…', '准备进入…'];
+
+  btn.addEventListener('click', function(){
+    if(!url || btn.disabled) return;
+    btn.disabled = true;
+    btn.classList.add('busy');
+    lblEl.textContent = '建立中';
+    if(navigator.vibrate) { try{ navigator.vibrate(10); }catch(e){} }
+
+    link.classList.add('on');
+    var i = 0;
+    word.textContent = STEPS[0];
+    prog.style.width = '22%';
+
+    var t = setInterval(function(){
+      i++;
+      if(i < STEPS.length){
+        word.textContent = STEPS[i];
+        prog.style.width = (22 + i*24) + '%';
+      }else{
+        clearInterval(t);
+        prog.style.width = '100%';
+        word.textContent = '通道就绪';
+        setTimeout(function(){ window.location.href = url; }, 420);
+      }
+    }, 620);
   });
-
-  adminBtn.addEventListener('click', function(){
-    if(admin) window.open(admin, '_blank');
-  });
-
-  function fallback(text, cb){
-    var ta = document.createElement('textarea');
-    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
-    document.body.appendChild(ta); ta.select();
-    try{ document.execCommand('copy'); cb(); }catch(e){ showNotice('复制失败，请手动长按复制'); }
-    document.body.removeChild(ta);
-  }
-
-  function showNotice(msg){
-    var n = document.getElementById('notice');
-    n.textContent = msg; n.classList.add('show');
-    clearTimeout(showNotice._t);
-    showNotice._t = setTimeout(function(){ n.classList.remove('show'); }, 2000);
-  }
 })();
 </script>
 </body>
