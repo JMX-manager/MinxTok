@@ -207,19 +207,6 @@ body>*{position:relative; z-index:1;}
 .adm-box.shake{animation:admshake .42s cubic-bezier(.36,.07,.19,.97) both;}
 @keyframes admshake{10%,90%{transform:translateX(-2px);} 20%,80%{transform:translateX(3px);} 30%,50%,70%{transform:translateX(-5px);} 40%,60%{transform:translateX(5px);}}
 
-/* ---------- 建立连接后的跳转等待 ---------- */
-@keyframes fadeIn{from{opacity:0;} to{opacity:1;}}
-#link{
-  position:fixed; inset:0; z-index:100;
-  background:var(--bg);
-  display:none; align-items:center; justify-content:center;
-  padding:0 40px; text-align:center;
-}
-#link.on{display:flex; animation:fadeIn .35s cubic-bezier(.4,0,.2,1) both;}
-#link .word{
-  font-size:13px; color:var(--text-2); letter-spacing:.18em;
-  min-height:20px;
-}
 </style>
 </head>
 <body>
@@ -232,7 +219,7 @@ body>*{position:relative; z-index:1;}
 
     <div class="channel">
       <div class="ch-kind">当前通道</div>
-      <div class="ch-url" id="ch-url">正在获取…</div>
+      <div class="ch-url" id="ch-url">Connecting…</div>
     </div>
 
     <button class="enter" id="enter">
@@ -252,10 +239,6 @@ body>*{position:relative; z-index:1;}
   <a id="go" href="#"></a>
 
   <!-- 建立连接遮罩 -->
-  <div id="link">
-    <div class="word" id="link-word"></div>
-  </div>
-
   <!-- 管理后台：登录（失败不暴露后台地址） -->
   <div id="adm">
     <div class="adm-box">
@@ -362,19 +345,15 @@ body>*{position:relative; z-index:1;}
   /* ---------- 进入通道：蓄势一下再跳转（转圈动画在用户端加载页） ---------- */
   var btn = document.getElementById('enter');
   var lblEl = btn.querySelector('.lbl');
-  var link = document.getElementById('link');
-  var word = document.getElementById('link-word');
 
   btn.addEventListener('click', function(){
     if(!url || btn.disabled) return;
     btn.disabled = true;
     btn.classList.add('busy');
-    lblEl.textContent = '正在进入';
+    lblEl.textContent = 'Entering';
     if(navigator.vibrate) { try{ navigator.vibrate(10); }catch(e){} }
 
-    link.classList.add('on');
-    word.textContent = '正在连接…';
-    setTimeout(function(){ window.location.href = url; }, 420);
+    setTimeout(function(){ window.location.href = url; }, 180);
   });
 })();
 </script>
