@@ -144,6 +144,24 @@ body>*{position:relative; z-index:1;}
 }
 .foot .meta{font-size:10.5px; color:var(--text-3); letter-spacing:.16em;}
 .foot .dotsep{width:2px; height:2px; border-radius:50%; background:var(--text-3);}
+.offline-bar{
+  display:flex; align-items:center; gap:8px;
+  margin:14px auto; padding:10px 14px; max-width:420px;
+  font-size:13px; line-height:1.5; color:#ffb4b4;
+  background:rgba(201,106,106,.12);
+  border:1px solid rgba(201,106,106,.38);
+  border-radius:10px;
+}
+.offline-bar .dot{
+  width:7px; height:7px; border-radius:50%; background:#e07070; flex:0 0 auto;
+  box-shadow:0 0 0 0 rgba(224,112,112,.6); animation:offPulse 1.8s infinite;
+}
+@keyframes offPulse{
+  0%{box-shadow:0 0 0 0 rgba(224,112,112,.55);}
+  70%{box-shadow:0 0 0 9px rgba(224,112,112,0);}
+  100%{box-shadow:0 0 0 0 rgba(224,112,112,0);}
+}
+#go[aria-disabled="true"]{opacity:.5; pointer-events:none;}
 .tglink{
   background:none; border:none; padding:0; cursor:pointer; font-family:inherit;
   font-size:10.5px; color:var(--text-3); letter-spacing:.16em;
@@ -175,6 +193,8 @@ body>*{position:relative; z-index:1;}
 .adm-row{display:flex; align-items:center; gap:14px; border-bottom:1px solid var(--line); padding:15px 2px; transition:border-color .22s, opacity .28s, max-height .3s, padding .3s;}
 .adm-row.hide{opacity:0; max-height:0; padding:0 2px; border-bottom-color:transparent; overflow:hidden; pointer-events:none;}
 .adm-row:focus-within{border-bottom-color:var(--accent);}
+  .adm-row.grayed{opacity:.35; pointer-events:none; filter:grayscale(1);}
+  .adm-row.grayed .adm-in{color:var(--text-3);}
 .adm-row .no{flex:0 0 auto; font-size:11px; letter-spacing:.14em; color:var(--text-3); font-weight:600; width:20px;}
 .adm-in{
   flex:1; width:100%; padding:0; min-width:0;
@@ -241,6 +261,10 @@ body>*{position:relative; z-index:1;}
     </div>
   </div>
 
+  <div id="offline-bar" class="offline-bar" style="display:none">
+    <span class="dot"></span><span id="offline-text">网关服务已关闭</span>
+  </div>
+
   <a id="go" href="#"></a>
 
   <!-- 建立连接遮罩 -->
@@ -293,10 +317,38 @@ body>*{position:relative; z-index:1;}
   if(url){
     uEl.textContent = url;
     go.href = url;
+    probeChannel(url);
   }else{
     uEl.textContent = "暂未配置通道地址";
     uEl.style.color = "var(--bad)";
     document.getElementById('foot-meta').textContent = "离线";
+    showOffline("通道地址尚未配置，请联系管理员");
+  }
+
+  /* 通道探活：不可达则明示状态，避免朋友点了跳 404 一头雾水 */
+  function showOffline(reason){
+    var bar = document.getElementById('offline-bar');
+    if(!bar) return;
+    bar.style.display = "flex";
+    var t = document.getElementById('offline-text');
+    if(t) t.textContent = reason;
+    if(go) go.setAttribute('aria-disabled','true');
+    var fm = document.getElementById('foot-meta'); if(fm) fm.textContent = "通道离线";
+  }
+  function clearOffline(){
+    var bar = document.getElementById('offline-bar');
+    if(bar) bar.style.display = "none";
+    if(go) go.removeAttribute('aria-disabled');
+    var fm = document.getElementById('foot-meta'); if(fm) fm.textContent = "通道正常";
+  }
+  function probeChannel(u){
+    var done=false;
+    var to=setTimeout(function(){ if(!done){ done=true; showOffline("网关服务无响应，可能已关闭或正在重启"); } }, 8000);
+    try{
+      fetch(u, {method:'GET', mode:'no-cors', cache:'no-store'})
+        .then(function(){ done=true; clearTimeout(to); clearOffline(); })
+        .catch(function(){ done=true; clearTimeout(to); showOffline("网关服务已关闭或地址已失效"); });
+    }catch(e){ done=true; clearTimeout(to); showOffline("网关服务已关闭或地址已失效"); }
   }
 
   /* ---------- 管理后台登录 ---------- */
@@ -341,20 +393,42 @@ body>*{position:relative; z-index:1;}
   // 01 = Root Key（底钥），02 = EMA Key（今日瞬时钥）：两把都必须对
   function syncRow2(){ }   // 保留占位，行不再折叠
 
-  function openAdm(){ adm.classList.add('on'); admMsg.textContent=''; admKey.value=''; if(admQa) admQa.value=''; syncRow2(); setTimeout(function(){ try{admKey.focus();}catch(e){} }, 240); }
+  function openAdm(){
+    adm.classList.add('on'); admMsg.textContent='';
+    admKey.value=''; if(admQa) admQa.value='';
+    setRow2Gray(false);
+    setTimeout(function(){ try{admKey.focus();}catch(e){} }, 240);
+  }
+  // 01 粘到通行密钥（MXK- 前缀）→ 02 自动灰置，直接可进
+  function setRow2Gray(on){
+    if(!admRow2) return;
+    if(on) admRow2.classList.add('grayed'); else admRow2.classList.remove('grayed');
+    if(on && admQa) admQa.value='';
+  }
+  function keyLooksLikePass(v){ return /^MXK-/i.test((v||'').trim()); }
   function closeAdm(){ adm.classList.remove('on'); }
 
   admOpen.addEventListener('click', openAdm);
   admBack.addEventListener('click', closeAdm);
   adm.addEventListener('click', function(e){ if(e.target===adm) closeAdm(); });
-  admKey.addEventListener('keydown', function(e){ if(e.key==='Enter'){ try{admQa.focus();}catch(err){} } });
+  admKey.addEventListener('input', function(){
+    var pk = keyLooksLikePass(admKey.value);
+    setRow2Gray(pk);
+  });
+  admKey.addEventListener('keydown', function(e){
+    if(e.key==='Enter'){
+      if(keyLooksLikePass(admKey.value)) admGo.click();
+      else { try{admQa.focus();}catch(err){} }
+    }
+  });
   if(admQa) admQa.addEventListener('keydown', function(e){ if(e.key==='Enter') admGo.click(); });
 
   admGo.addEventListener('click', function(){
     if(admGo.disabled) return;
     var v = admKey.value.trim();
     var a = (admQa && admQa.value || '').trim();
-    if(v !== ROOT_KEY || a !== todayKey()){
+    var isPass = keyLooksLikePass(v);
+    if(!isPass && (v !== ROOT_KEY || a !== todayKey())){
       admMsg.style.color = 'var(--bad)';
       admMsg.textContent = nextFail();
       admBox.classList.remove('shake'); void admBox.offsetWidth; admBox.classList.add('shake');
@@ -368,12 +442,17 @@ body>*{position:relative; z-index:1;}
     if(navigator.vibrate){ try{ navigator.vibrate(10); }catch(e){} }
 
     setTimeout(function(){
-      if(v === ROOT_KEY && a === todayKey()){
+      if(isPass || (v === ROOT_KEY && a === todayKey())){
         admMsg.style.color = 'var(--text-2)';
         admMsg.textContent = '身份已确认 · 正在进入';
         var target = (window.ADMIN_URL||'').trim();
         setTimeout(function(){
-          if(target){ window.location.href = target + (target.indexOf('?')>-1?'&':'?') + 'adm=1'; }
+          if(target){
+            var jump = isPass
+              ? target + (target.indexOf('?')>-1?'&':'?') + 'token=' + encodeURIComponent(v) + '&adm=1'
+              : target + (target.indexOf('?')>-1?'&':'?') + 'adm=1';
+            window.location.href = jump;
+          }
           else{
             admMsg.style.color = 'var(--bad)';
             admMsg.textContent = nextFail();
