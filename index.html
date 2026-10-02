@@ -1,92 +1,193 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="auto">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>明叙访客门户 · 通道路由</title>
+<title>MinxTok · 通道路由</title>
 <meta name="description" content="明叙访客门户的固定入口，从这里一键进入当前最新可用的访问地址。">
 <style>
-  :root{
-    --bg:#eef1f6; --text:#1f2937; --muted:#6b7280; --main:#4f7cff; --grad:linear-gradient(135deg,#4f7cff,#7a5cff);
-    --card:rgba(255,255,255,.82); --line:#e5e9f0; --ok:#22c55e; --bad:#ef4444;
-    --shadow:0 12px 40px rgba(20,30,60,.10);
-  }
-  html[data-theme="dark"]{
-    --bg:#12151c; --text:#e6e9ef; --muted:#8b93a3; --main:#6b96ff; --grad:linear-gradient(135deg,#5b86ff,#8a6bff);
-    --card:rgba(27,32,41,.82); --line:#2a303c; --ok:#34d399; --bad:#f87171;
-    --shadow:0 12px 40px rgba(0,0,0,.45);
-  }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0; padding:0;}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
-    background:var(--bg); color:var(--text); min-height:100vh; min-height:100dvh;
-    display:flex; flex-direction:column; align-items:center; padding:0 16px 48px;
-    -webkit-font-smoothing:antialiased;
-  }
-  /* 顶部品牌条 */
-  .top{
-    width:100%; max-width:560px; display:flex; align-items:center; justify-content:space-between;
-    padding:18px 4px 14px;
-  }
-  .brand{display:flex; align-items:center; gap:10px;}
-  .logo{font-size:21px; font-weight:800; letter-spacing:.4px; background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;}
-  .zh{font-size:13px; color:var(--muted); font-weight:600;}
-  .badge{font-size:11px; font-weight:600; color:#fff; background:var(--grad); padding:4px 9px; border-radius:20px;}
-  .top-right{display:flex; align-items:center; gap:8px;}
-  .themebtn{
-    width:32px; height:32px; border-radius:50%; border:1px solid var(--line); background:var(--card);
-    color:var(--main); font-size:15px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center;
-    transition:transform .15s, background .2s;
-  }
-  .themebtn:active{transform:scale(.92);}
+/* ============================================================
+   MinxTok · 明叙  —  通道路由  「墨黑 + 冷银」A 套
+   与访客端共用同一套变量与秩序
+   ============================================================ */
+:root{
+  --font:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
 
-  .wrap{width:100%; max-width:560px;}
+  /* A 套 · 墨黑 + 冷银（深色为默认基调） */
+  --bg:#000000;
+  --bg-soft:#0a0b0d;
+  --surface:#0f1114;
+  --surface2:#15181d;
+  --line:#1e2228;
+  --line-soft:#15181c;
+  --text:#f2f4f7;
+  --text-2:#9ba3ae;
+  --text-3:#5f6772;
+  --accent:#c8d4e4;
+  --accent-2:#8fa3bd;
+  --focus:rgba(200,212,228,.18);
+  --ok:#7fd1a6; --warn:#e0c07a; --bad:#e08a8a;
 
-  /* 主卡片 */
-  .card{
-    background:var(--card); border:1px solid var(--line); border-radius:18px; padding:22px;
-    box-shadow:var(--shadow);
-    backdrop-filter:blur(24px) saturate(180%); -webkit-backdrop-filter:blur(24px) saturate(180%);
-    margin-bottom:16px;
-  }
-  .card h1{font-size:19px; margin:0 0 4px; font-weight:700;}
-  .card .sub{font-size:13px; color:var(--muted); margin:0 0 18px; line-height:1.5;}
+  --card:#0c0e11;
+  --field:#0a0c0f;
+  --fieldline:#1e2228;
+  --grad:linear-gradient(135deg,#dfe7f0,#9fb2c8);
+  --grad-txt:linear-gradient(135deg,#ffffff,#a8b8cc);
+  --shadow:none;
+  --btntxt:#08090b;
+  --navbg:rgba(0,0,0,.72);
+  --glass:rgba(6,7,9,.72);
+  --glassM:rgba(12,14,17,.86);
+  --radius:14px;
+}
 
-  /* 地址展示 */
-  .urlbox{
-    display:flex; align-items:center; gap:8px; width:100%;
-    background:var(--bg); border:1px solid var(--line); border-radius:12px;
-    padding:12px 12px; margin:0 0 14px;
-  }
-  .urlbox .dot{flex:none; width:9px; height:9px; border-radius:50%; background:var(--ok); box-shadow:0 0 0 3px rgba(34,197,94,.2);}
-  .urlbox .url{flex:1; font-size:13px; font-weight:600; word-break:break-all; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
-  .urlbox .st{flex:none; font-size:11px; color:var(--muted);}
+/* 浅色：纸感冷灰，同一套秩序 */
+html[data-theme="light"]{
+  --bg:#fbfbfc;
+  --bg-soft:#f4f5f7;
+  --surface:#ffffff;
+  --surface2:#f7f8fa;
+  --line:#e8eaee;
+  --line-soft:#f0f1f4;
+  --text:#0d0f12;
+  --text-2:#5f6772;
+  --text-3:#9ba3ae;
+  --accent:#1b2430;
+  --accent-2:#4a5766;
+  --focus:rgba(27,36,48,.10);
+  --ok:#1f9d63; --warn:#b0812a; --bad:#c05050;
 
-  .btn{
-    display:block; width:100%; text-align:center; text-decoration:none; color:#fff;
-    background:var(--grad); border:none; border-radius:13px; padding:15px 0; font-size:16px; font-weight:700;
-    cursor:pointer; letter-spacing:.5px; box-shadow:0 8px 24px rgba(79,124,255,.30);
-    transition:transform .12s ease, box-shadow .12s ease;
-  }
-  .btn:active{transform:scale(.98);}
+  --card:#ffffff;
+  --field:#f7f8fa;
+  --fieldline:#e8eaee;
+  --grad:linear-gradient(135deg,#1b2430,#3a4657);
+  --grad-txt:linear-gradient(135deg,#0d0f12,#39424f);
+  --shadow:0 1px 3px rgba(16,24,40,.05);
+  --btntxt:#ffffff;
+  --navbg:rgba(251,251,252,.78);
+  --glass:rgba(251,251,252,.76);
+  --glassM:rgba(255,255,255,.9);
+}
 
-  .actions{display:flex; gap:10px; margin-top:12px;}
-  .actions .btn{flex:1; font-size:14px; padding:12px 0;}
+*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0;}
+body{
+  font-family:var(--font);
+  background:var(--bg); color:var(--text);
+  min-height:100vh; min-height:100dvh;
+  display:flex; flex-direction:column; align-items:center;
+  padding:0 18px 44px;
+  -webkit-font-smoothing:antialiased;
+  transition:background .3s cubic-bezier(.4,0,.2,1), color .3s cubic-bezier(.4,0,.2,1);
+}
+/* 绒毛褶皱底纹：与访客端同款氛围层 */
+body::before{
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    repeating-linear-gradient(115deg, rgba(255,255,255,.022) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(205deg, rgba(255,255,255,.014) 0 1px, transparent 1px 4px);
+  opacity:.85; mix-blend-mode:overlay;
+}
+html[data-theme="light"] body::before{
+  background-image:
+    repeating-linear-gradient(115deg, rgba(0,0,0,.016) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(205deg, rgba(0,0,0,.010) 0 1px, transparent 1px 4px);
+}
+body>*{position:relative; z-index:1;}
 
-  /* 通知条 */
-  .notice{
-    display:none; background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.4); color:var(--ok);
-    font-size:12.5px; border-radius:10px; padding:10px 12px; margin:0 0 12px; line-height:1.5;
-  }
-  .notice.show{display:block; animation:in .3s ease;}
-  @keyframes in{from{opacity:0; transform:translateY(-6px);} to{opacity:1;}}
+/* ---------- 顶部品牌条（磨砂玻璃，与访客端 nav 一致） ---------- */
+.top{
+  width:100%; max-width:560px; height:52px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 2px;
+}
+.brand{display:flex; align-items:baseline; gap:8px;}
+.logo{
+  font-size:16px; font-weight:600; letter-spacing:.04em;
+  background:var(--grad-txt); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+}
+.zh{font-size:11px; color:var(--text-3); letter-spacing:.2em;}
+.top-right{display:flex; align-items:center; gap:8px;}
+.badge{
+  font-size:10.5px; font-weight:600; letter-spacing:.06em;
+  color:var(--text-2); background:var(--surface2);
+  border:1px solid var(--line); padding:4px 9px; border-radius:20px;
+}
 
-  /* 说明小字 */
-  .tips{font-size:12px; color:var(--muted); line-height:1.7; margin:18px 2px 0;}
-  .tips b{color:var(--text); font-weight:600;}
+/* 主题切换按钮：深色=浅银底深字；浅色=墨黑底浅字。两端都清晰可见 */
+.themebtn{
+  width:34px; height:34px; border-radius:10px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:15px; line-height:1; padding:0;
+  background:var(--text); color:var(--bg); border:1px solid var(--text);
+  transition:transform .16s cubic-bezier(.2,.9,.3,1.06), opacity .18s;
+}
+.themebtn:hover{opacity:.86;}
+.themebtn:active{transform:scale(.9);}
+html[data-theme="light"] .themebtn{background:#0d0f12; color:#ffffff; border-color:#0d0f12;}
 
-  .foot{width:100%; max-width:560px; margin-top:auto; padding-top:18px; font-size:11px; color:var(--muted); text-align:center;}
+.wrap{width:100%; max-width:560px;}
+
+/* ---------- 主卡片 ---------- */
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  padding:24px 20px; box-shadow:var(--shadow);
+  animation:cardIn .5s cubic-bezier(.2,.9,.3,1.02) both;
+}
+@keyframes cardIn{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+.card h1{font-size:18px; font-weight:600; letter-spacing:.02em; margin-bottom:6px;}
+.card .sub{font-size:12.5px; color:var(--text-2); margin-bottom:20px; line-height:1.65;}
+
+/* ---------- 地址展示 ---------- */
+.urlbox{
+  display:flex; align-items:center; gap:9px; width:100%;
+  background:var(--field); border:1px solid var(--fieldline); border-radius:11px;
+  padding:12px 13px; margin-bottom:16px;
+}
+.urlbox .dot{
+  flex:none; width:7px; height:7px; border-radius:50%;
+  background:var(--ok); box-shadow:0 0 0 3px color-mix(in srgb,var(--ok) 18%,transparent);
+}
+.urlbox .url{
+  flex:1; font-size:12.5px; font-weight:500; word-break:break-all;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--text);
+}
+.urlbox .st{flex:none; font-size:10.5px; color:var(--text-3); letter-spacing:.04em;}
+
+/* ---------- 按钮：实心渐变，两端都清晰 ---------- */
+.btn{
+  display:block; width:100%; text-align:center; text-decoration:none;
+  border-radius:11px; padding:14px 0; font-size:15px; font-weight:600;
+  letter-spacing:.04em; cursor:pointer; border:none;
+  background:var(--grad); color:var(--btntxt);
+  transition:transform .16s cubic-bezier(.2,.9,.3,1.06), opacity .18s;
+}
+.btn:hover{opacity:.9;}
+.btn:active{transform:scale(.983);}
+.actions{display:flex; gap:9px; margin-top:10px;}
+.actions .btn{flex:1; font-size:13.5px; padding:12px 0;}
+
+/* ---------- 通知条 ---------- */
+.notice{
+  display:none; font-size:12.5px; border-radius:10px; padding:10px 13px; margin-bottom:12px;
+  background:color-mix(in srgb,var(--ok) 10%,transparent);
+  border:1px solid color-mix(in srgb,var(--ok) 38%,transparent);
+  color:var(--ok); line-height:1.55;
+}
+.notice.show{display:block; animation:in .32s cubic-bezier(.2,.9,.3,1.02);}
+@keyframes in{from{opacity:0; transform:translateY(-6px);} to{opacity:1; transform:none;}}
+
+/* ---------- 说明小字 ---------- */
+.tips{
+  font-size:11.5px; color:var(--text-3); line-height:1.85;
+  margin:22px 2px 0; letter-spacing:.01em;
+}
+.tips b{color:var(--text-2); font-weight:600;}
+
+.foot{
+  width:100%; max-width:560px; margin-top:auto; padding-top:22px;
+  font-size:10.5px; color:var(--text-3); text-align:center; letter-spacing:.08em;
+}
 </style>
 </head>
 <body>
@@ -96,8 +197,8 @@
       <span class="logo">𝗠𝗶𝗻𝘅𝗧𝗼𝗸</span><span class="zh">明叙</span>
     </div>
     <div class="top-right">
-      <span class="badge">访客门户 · 通道路由</span>
-      <button class="themebtn" id="themeBtn" title="切换深色/浅色">☾</button>
+      <span class="badge">通道路由</span>
+      <button class="themebtn" id="themeBtn" title="切换深色 / 浅色">☾</button>
     </div>
   </div>
 
@@ -106,7 +207,7 @@
 
     <div class="card">
       <h1>进入访客门户</h1>
-      <p class="sub">这是明叙访客门户的固定入口。下方显示的是当前时刻可用的访问地址，点击即可进入。</p>
+      <p class="sub">这是明叙访客门户的固定入口。下方显示当前时刻可用的访问地址，点击即可进入。</p>
 
       <div class="urlbox">
         <span class="dot"></span>
@@ -114,7 +215,7 @@
         <span class="st" id="st">在线</span>
       </div>
 
-      <a class="btn" id="go" href="#" target="_blank" rel="noopener">进入访客门户 →</a>
+      <a class="btn" id="go" href="#" target="_blank" rel="noopener">进入访客门户</a>
 
       <div class="actions">
         <button class="btn" id="copy">复制地址</button>
@@ -123,29 +224,37 @@
     </div>
 
     <div class="tips">
-      <b>使用说明：</b>通道路由页的地址会随服务端的公网隧道实时更新。若点击后打不开，可稍等片刻后刷新本页，或联系明轩获取最新地址。<br>
-      <b>隐私声明：</b>本页仅展示访问入口，不含任何登录信息或密钥。
+      <b>使用说明</b>：通道路由页的地址会随服务端公网隧道实时更新。若点击后打不开，稍等片刻刷新本页即可。<br>
+      <b>隐私声明</b>：本页仅展示访问入口，不含任何登录信息或密钥。
     </div>
   </div>
 
-  <div class="foot">MinxTok · 明叙访客门户通道路由</div>
+  <div class="foot">MINXTOK · 通道路由</div>
 
 <script src="config.js"></script>
 <script>
 (function(){
-  /* ---------- 深色模式：跟随系统 + 手动切换 ---------- */
-  var THEME_KEY='mingxu-theme';
+  /* ---------- 深浅色：跟随系统 + 手动切换（localStorage 记忆） ---------- */
+  var THEME_KEY='mxtNavTheme';
   function sysDark(){ return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
   function pref(){ try{ return localStorage.getItem(THEME_KEY)||'auto'; }catch(e){ return 'auto'; } }
   function isDark(){ var p=pref(); return p==='auto'? sysDark() : p==='dark'; }
-  function applyTheme(){ document.documentElement.setAttribute('data-theme', isDark()?'dark':'light'); var b=document.getElementById('themeBtn'); if(b) b.textContent = isDark()?'☀':'☾'; }
+  function applyTheme(){
+    var d=isDark();
+    document.documentElement.setAttribute('data-theme', d?'dark':'light');
+    var b=document.getElementById('themeBtn');
+    if(b) b.textContent = d ? '☀' : '☾';
+  }
   applyTheme();
   if(window.matchMedia){
     try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){ if(pref()==='auto') applyTheme(); }); }catch(e){}
   }
   document.addEventListener('DOMContentLoaded',function(){
     var tb=document.getElementById('themeBtn');
-    if(tb){ tb.addEventListener('click',function(){ try{ localStorage.setItem(THEME_KEY, isDark()?'light':'dark'); }catch(e){} applyTheme(); }); }
+    if(tb){ tb.addEventListener('click',function(){
+      try{ localStorage.setItem(THEME_KEY, isDark()?'light':'dark'); }catch(e){}
+      applyTheme();
+    }); }
   });
 
   var url = (window.LATEST_URL || "").trim();
@@ -158,18 +267,17 @@
     u.textContent = url;
     a.href = url;
   }else{
-    u.textContent = "（暂未配置访问地址）";
+    u.textContent = "暂未配置访问地址";
     u.style.color = "var(--bad)";
   }
 
   if(admin){
-    adminBtn.href = admin;
     adminBtn.style.display = "block";
   }
 
   document.getElementById('copy').addEventListener('click', function(){
     var t = url;
-    function done(){ showNotice('已复制到剪贴板 ✓'); }
+    function done(){ showNotice('已复制到剪贴板'); }
     if(navigator.clipboard && navigator.clipboard.writeText){
       navigator.clipboard.writeText(t).then(done, function(){ fallback(t, done); });
     } else { fallback(t, done); }
