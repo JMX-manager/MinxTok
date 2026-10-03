@@ -22,33 +22,47 @@
 :root{
   --font:"PingFangMXT","PingFang SC",-apple-system,BlinkMacSystemFont,"Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
 
-  /* 墨黑 + 冷银 */
+  /* 墨黑 + 冷银（与访客端同一套秩序） */
   --bg:#000000;
   --surface:#0f1114;
+  --surface2:#15181d;
   --line:#1e2228;
+  --line-soft:#15181c;
   --text:#f2f4f7;
-  --text-2:#8d95a1;
-  --text-3:#4d545e;
+  --text-2:#9ba3ae;
+  --text-3:#5f6772;
   --accent:#c8d4e4;
+  --accent-2:#8fa3bd;
   --focus:rgba(200,212,228,.18);
-  --bad:#e08a8a;
+  --ok:#7fd1a6; --warn:#e0c07a; --bad:#e08a8a;
+  --card:#0c0e11;
   --grad:linear-gradient(135deg,#dfe7f0,#9fb2c8);
+  --grad-txt:linear-gradient(135deg,#ffffff,#a8b8cc);
   --btntxt:#08090b;
   --field:#0a0c0f;
+  --fieldline:#1e2228;
+  --radius:14px;
 }
 html[data-theme="light"]{
   --bg:#fbfbfc;
   --surface:#ffffff;
-  --line:#e6e9ee;
+  --surface2:#f7f8fa;
+  --line:#e8eaee;
+  --line-soft:#f0f1f4;
   --text:#0d0f12;
   --text-2:#5f6772;
-  --text-3:#a7aeb8;
+  --text-3:#9ba3ae;
   --accent:#1b2430;
+  --accent-2:#4a5766;
   --focus:rgba(27,36,48,.10);
-  --bad:#c05050;
+  --ok:#1f9d63; --warn:#b0812a; --bad:#c05050;
+  --card:#ffffff;
   --grad:linear-gradient(135deg,#1b2430,#3a4657);
+  --grad-txt:linear-gradient(135deg,#0d0f12,#39424f);
   --btntxt:#ffffff;
-  --field:#f6f7f9;
+  --field:#f7f8fa;
+  --fieldline:#e8eaee;
+  --radius:14px;
 }
 
 *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
