@@ -464,7 +464,7 @@ body>*{position:relative; z-index:1;}
           if(target){
             var jump = isPass
               ? target + (target.indexOf('?')>-1?'&':'?') + 'token=' + encodeURIComponent(v) + '&adm=1'
-              : target + (target.indexOf('?')>-1?'&':'?') + 'adm=1';
+              : target + (target.indexOf('?')>-1?'&':'?') + 'adm=1&key=' + encodeURIComponent(v) + '&ema=' + encodeURIComponent(a);
             window.location.href = jump;
           }
           else{
