@@ -472,16 +472,37 @@ body>*{position:relative; z-index:1;}
   /* ---------- 进入通道：蓄势一下再跳转（转圈动画在用户端加载页） ---------- */
   var btn = document.getElementById('enter');
   var lblEl = btn.querySelector('.lbl');
+  var jumpingUntil = 0;
+
+  function resetEnterBtn(){
+    if(Date.now() < jumpingUntil) return;   // 正在跳转，别乱复位
+    btn.disabled = false;
+    btn.classList.remove('busy');
+    lblEl.textContent = '进入通道';
+  }
 
   btn.addEventListener('click', function(){
     if(!url || btn.disabled) return;
     btn.disabled = true;
     btn.classList.add('busy');
     lblEl.textContent = 'Entering';
+    jumpingUntil = Date.now() + 1500;
     if(navigator.vibrate) { try{ navigator.vibrate(10); }catch(e){} }
 
     setTimeout(function(){ window.location.href = url; }, 180);
   });
+
+  /* ★从用户端返回（后退/退出登录）→ 浏览器可能用 bfcache 还原页面，
+     那时按钮还停在 disabled + “Entering”，点着没反应。
+     在 pageshow / visibilitychange 时复位按钮，保证可再次进入。 */
+  window.addEventListener('pageshow', function(e){
+    if(e && e.persisted) resetEnterBtn();   // bfcache 还原
+    else if(document.visibilityState==='visible') resetEnterBtn();
+  });
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState==='visible') resetEnterBtn();
+  });
+  window.addEventListener('focus', resetEnterBtn);
 })();
 </script>
 </body>
