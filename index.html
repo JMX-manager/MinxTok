@@ -328,9 +328,20 @@ body>*{position:relative; z-index:1;}
     document.documentElement.setAttribute('data-theme', isDark()?'dark':'light');
   }
   applyTheme();
+  /* 跟随系统深浅色：auto 模式下系统主题一变就实时跟随（新增 addListener 回退，兼容老 WebView） */
   if(window.matchMedia){
-    try{ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(){ if(pref()==='auto') applyTheme(); }); }catch(e){}
+    try{
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      var onSysChange = function(){ if(pref()==='auto') applyTheme(); };
+      if(mq.addEventListener) mq.addEventListener('change', onSysChange);
+      else if(mq.addListener) mq.addListener(onSysChange);
+    }catch(e){}
   }
+  /* 页面从后台回到前台（手机切回）时，重新按当前系统主题校准，避免系统已切但页面没更新 */
+  try{
+    document.addEventListener('visibilitychange', function(){ if(pref()==='auto') applyTheme(); });
+    window.addEventListener('focus', function(){ if(pref()==='auto') applyTheme(); });
+  }catch(e){}
   document.getElementById('tglink').addEventListener('click', function(){
     try{ localStorage.setItem(THEME_KEY, isDark()?'light':'dark'); }catch(e){}
     applyTheme();
@@ -371,11 +382,34 @@ body>*{position:relative; z-index:1;}
   function probeChannel(u){
     var done=false;
     var to=setTimeout(function(){ if(!done){ done=true; showOffline("网关服务无响应，可能已关闭或正在重启"); } }, 8000);
+    /* 关键：no-cors 的 fetch 拿不到真实状态码（opaque 响应），隧道返回 404 页面时
+       TCP 依然连通、fetch 也会 resolve，导致「404 却显示通道正常」。
+       所以改为「必须能真正解码一张图片」才算在线：用访客端真实存在的头像资源做探针，
+       404 错误页不是图片 → onerror → 判离线，从而不再误报。
+       主探针失败时再退回 favicon 二次校验，双失败才判离线。 */
+    var okCount=0, failCount=0;
+    function settle(){
+      if(done) return;
+      if(okCount>0){ done=true; clearTimeout(to); clearOffline(); }
+      else if(failCount>=2){ done=true; clearTimeout(to); showOffline("通道地址已失效或网关已关闭"); }
+    }
+    var base = u.replace(/\/$/,'');
+    /* 主探针：加载门户自带的真实图片资源（og-card.png / 头像），能解码=在线 */
     try{
-      fetch(u, {method:'GET', mode:'no-cors', cache:'no-store'})
-        .then(function(){ done=true; clearTimeout(to); clearOffline(); })
-        .catch(function(){ done=true; clearTimeout(to); showOffline("网关服务已关闭或地址已失效"); });
-    }catch(e){ done=true; clearTimeout(to); showOffline("网关服务已关闭或地址已失效"); }
+      var im=new Image();
+      var t2=setTimeout(function(){ failCount++; settle(); }, 8000);
+      im.onload=function(){ clearTimeout(t2); okCount++; settle(); };
+      im.onerror=function(){ clearTimeout(t2); failCount++; settle(); };
+      im.src=base+'/og-card.png?_p='+Date.now();
+    }catch(e){ failCount++; settle(); }
+    /* 二次探针：favicon 也要能解码成图片 */
+    try{
+      var im2=new Image();
+      var t3=setTimeout(function(){ failCount++; settle(); }, 8000);
+      im2.onload=function(){ clearTimeout(t3); okCount++; settle(); };
+      im2.onerror=function(){ clearTimeout(t3); failCount++; settle(); };
+      im2.src=base+'/favicon.ico?_p='+Date.now();
+    }catch(e){ failCount++; settle(); }
   }
 
   /* ---------- 管理后台登录 ---------- */

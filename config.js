@@ -8,10 +8,10 @@
  * ============================================================ */
 
 // 当前访客门户入口（直接开门户地址，朋友不走中转页）
-window.LATEST_URL = "https://3dd4f9a5.r5.cpolar.top/";
+window.LATEST_URL = "https://4cb69f54.r8.cpolar.cn/";
 
 // 管理后台地址（随机化文件名，防扫描；可留空表示不展示）
-window.ADMIN_URL = "https://3dd4f9a5.r5.cpolar.top/mt-eed74008938ea842ef09.html";
+window.ADMIN_URL = "https://4cb69f54.r8.cpolar.cn/mt-eed74008938ea842ef09.html";
 
 // 最近一次更新此文件的时间（自动填，可留空）
 window.LATEST_UPDATED = "2026-10-03 00:58";
