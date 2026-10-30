@@ -551,6 +551,7 @@ async function sendMessage(text, extra = {}) {
     if (x.length < 2 || x.length > 10) return '';
     if (/怎么|如何|为什么|谁|哪|多少|是否|一眼|才能|能不能|吗|呢/.test(x)) return '';
     if (/(看出|判断|算出|求解|理解|解释|分析|比较|做|选)$/.test(x)) return '';
+    if (/是|了|着|过|把|被|在|总|都|还|又|不|没|会|能|让|使/.test(x)) return '';
     return x;
   }
   function stageTopic(raw) {
@@ -611,53 +612,74 @@ async function sendMessage(text, extra = {}) {
   // 明轩 2026-10-30：这句要像在思考，不能像填空。
   // 每个意图给 [主句, 补句]：主句=动作+对象，补句=接下来要干的事；
   // 落屏时一半概率只发主句、一半概率两句都发（「判断少量与大量的关系，总结并给出做题技巧」）。
+  // 明轩 2026-10-30：这套话要分语体——课本上的东西说「理清…是怎么回事」，
+  // 生活里的问题（抠鼻屎为什么会很爽）不能也套「理解…的概念」，那是要笑死人的。
+  const BOOK_CUE = /概念|定义|公式|定理|定律|方程|反应|性质|成分|计算|求解|证明|实验|函数|受力|压强|浮力|平衡|元素|化合价|溶液|电流|电压|电阻|遗传|细胞|语病|语法|时态|从句|单词|古文|议论文/;
+  const LIFE_CUE = /抠|鼻屎|屎|尿|屁|打嗝|口臭|脚臭|困|睡|饿|馋|爽|难受|emo|烦|累|疼|痒|熬夜|起床|刷牙|洗澡|头发|指甲|痘|胖|瘦|感冒|喝酒|抽烟|咖啡|奶茶|外卖|宿舍|食堂|同学|舍友|爸妈|手机没电|打游戏/;
+  function lifeRegister(q) {
+    const s0 = String(q || '');
+    if (BOOK_CUE.test(s0)) return false;
+    return LIFE_CUE.test(s0) || /^(?:我|你|他|她|咱)[^，,。]{0,10}(?:了|吗|呢|啊|吧|呀|欸)$/.test(s0);
+  }
+  // 每种意图给一组主句 + 一组补句。主句按轮换挑（同一种问法不会每次都同一句），
+  // 补句也轮换，落屏时一半只发主句、一半主句+补句 —— 像边想边说，不是填空（明轩 2026-10-30）
   const STAGE_SAY = {
-    weather: () => ['查询实时天气'],
-    music:   (t) => [t ? `检索《${t}》的曲目信息` : '检索这首歌的信息', '核对歌手和时长'],
-    news:    () => ['请求新闻资讯接口', '挑出跟你有关的'],
-    video:   (t) => [t ? `解析视频「${t}」的内容` : '请求视频解析接口', '提取里面的要点'],
-    ocr:     () => ['调用视觉理解模型识别文字', '顺便读懂它的意思'],
-    translate: (t) => [/全文|整篇|整段|全篇/.test(String(t || '')) || !t ? '翻译全文' : `翻译「${t}」`, '保持原文的语气'],
-    geo:     (t) => [t ? `解析${t}的位置` : '解析当前位置', '算一下怎么走'],
-    sum:     (t) => [t ? `归纳${t}的要点` : '归纳全文要点', '提炼能用的结论'],
-    sort:    (t) => [t ? `把${t}按顺序理清` : '把内容按顺序理清', '分组归类'],
-    judge:   () => ['判断少量与大量的关系', '总结并给出做题技巧'],
-    look:    (t) => [t ? `查阅${t}的有关资料` : '查阅相关资料', '挑出能用的结论'],
-    why:     (t) => [t ? `理解${t}的概念` : '理清其中的原理', '讲清条件和适用场景'],
-    calc:    (t, q) => {
-      const m = stageMethod(q);
-      if (m && t) return [`${m}${t}`, '核对单位和有效数字'];
-      return [t ? `按公式计算${t}` : '按公式计算', '验算一遍结果'];
-    },
-    plan:    (t) => [t ? `安排${t}的步骤` : '排出先后顺序', '把每一步定下来'],
-    draft:   (t) => [t ? `起草${t}` : '起草一版内容', '调整一下措辞'],
-    explain: (t) => [t ? `讲清${t}` : '理清概念脉络', '捋一遍来龙去脉'],
-    base:    (t) => [t ? `想想${t}` : '理清一下思路', '想好再答'],
+    weather:   { head: () => ['查询实时天气'], tail: ['看下明后天的走势', '顺便看看温差大不大'] },
+    music:     { head: (t) => t ? [`检索《${t}》的曲目信息`, `找一下《${t}》的版本`] : ['检索这首歌的信息'], tail: ['核对歌手和时长', '看看有没有别的版本'] },
+    news:      { head: () => ['请求新闻资讯接口'], tail: ['挑出跟你有关的', '按轻重排一下'] },
+    video:     { head: (t) => t ? [`解析视频「${t}」的内容`] : ['请求视频解析接口'], tail: ['提取里面的要点'] },
+    ocr:       { head: () => ['调用视觉理解模型识别文字'], tail: ['顺便读懂它的意思'] },
+    translate: { head: (t) => [/全文|整篇|整段|全篇/.test(String(t || '')) || !t ? '翻译全文' : `翻译「${t}」`], tail: ['保持原文的语气', '照顾一下语序'] },
+    geo:       { head: (t) => t ? [`解析${t}的位置`] : ['解析当前位置'], tail: ['算一下怎么走'] },
+    sum:       { head: (t) => t ? [`归纳${t}的要点`] : ['归纳全文要点'], tail: ['提炼能用的结论', '把重复的部分去掉'] },
+    sort:      { head: (t) => t ? [`把${t}按顺序理清`] : ['把内容按顺序理清'], tail: ['分组归类', '标一下先后'] },
+    judge:     { head: () => ['判断少量与大量的关系'], tail: ['总结并给出做题技巧'] },
+    look:      { head: (t) => t ? [`查阅${t}的有关资料`] : ['查阅相关资料'], tail: ['挑出能用的结论'] },
+    // 为什么/原理类：课本问题用「理清 X 是怎么回事」，概念提问才用「理解 X 的概念」
+    why:       { head: (t, q) => {
+      const askConcept = /什么是|啥是|定义|概念|含义/.test(String(q || ''));
+      if (!t) return ['理清其中的道理', '把事情捋清楚'];
+      return askConcept ? [`理解${t}的概念`, `讲清${t}的定义`] : [`理清${t}是怎么回事`, `想明白${t}的道理`, `把${t}拆开说清`];
+    }, tail: ['把适用条件说清', '补一个课本里的例子', '把容易混的地方标出来'] },
+    // 生活/闲聊问题：不套概念、不装懂，就说在想这件事
+    life:      { head: () => ['顺着这话往下想', '琢磨一下这事儿', '先想想为什么会这样', '把这话拆开看看'], tail: ['不急着下结论', '找个说得过去的解释', '说点能听懂的'] },
+    calc:      { head: (t, q) => { const m = stageMethod(q); if (m && t) return [`${m}${t}`]; return [t ? `按公式计算${t}` : '按公式计算']; }, tail: ['核对单位和有效数字', '验算一遍结果'] },
+    plan:      { head: (t) => t ? [`安排${t}的步骤`] : ['排出先后顺序'], tail: ['把每一步定下来', '留点余量'] },
+    draft:     { head: (t) => t ? [`起草${t}`] : ['起草一版内容'], tail: ['调整一下措辞', '把语气定下来'] },
+    explain:   { head: (t) => t ? [`讲清${t}`, `捋一遍${t}`] : ['理清概念脉络'], tail: ['把来龙去脉讲清', '拿出关键的那一步'] },
+    base:      { head: (t) => t ? [`想想${t}`] : ['理清一下思路'], tail: ['想好再答', '别急着下结论'] },
   };
   const STAGE_SAY_EN = {
-    weather: () => ['Checking the live weather'],
-    music:   (t) => [t ? `Looking up “${t}”` : 'Searching the music library', 'matching artist and length'],
-    news:    () => ['Calling the news feed', 'picking what matters to you'],
-    video:   (t) => [t ? `Reading the video “${t}”` : 'Calling the video parser', 'pulling out the key points'],
-    ocr:     () => ['Running the vision model on the image', 'making sense of it'],
-    translate: () => ['Translating the whole text', 'keeping the tone'],
-    geo:     (t) => [t ? `Resolving ${t}` : 'Resolving the location', 'working out the route'],
-    sum:     (t) => [t ? `Pulling the key points on ${t}` : 'Pulling the key points', 'keeping what is usable'],
-    sort:    (t) => [t ? `Sorting out ${t}` : 'Sorting everything out', 'grouping by topic'],
-    judge:   () => ['Working out which reactant runs out first', 'then the shortcut rule'],
-    look:    (t) => [t ? `Looking up ${t}` : 'Checking the sources', 'keeping what is usable'],
-    why:     (t) => [t ? `Getting ${t} straight` : 'Getting the idea straight', 'and when it applies'],
-    calc:    (t) => [t ? `Working out ${t}` : 'Working the numbers', 'checking units and digits'],
-    plan:    (t) => [t ? `Laying out the steps for ${t}` : 'Laying out the steps', 'pinning each one down'],
-    draft:   (t) => [t ? `Drafting ${t}` : 'Drafting the wording', 'shaping the sentences'],
-    explain: (t) => [t ? `Walking through ${t}` : 'Lining up the concepts', 'tracing how it works'],
-    base:    (t) => [t ? `Thinking about ${t}` : 'Making sense of the question', 'then answering'],
+    weather:   { head: () => ['Checking the live weather'], tail: ['and the next few days'] },
+    music:     { head: (t) => t ? [`Looking up “${t}”`] : ['Searching the music library'], tail: ['matching artist and length'] },
+    news:      { head: () => ['Calling the news feed'], tail: ['picking what matters to you'] },
+    video:     { head: (t) => t ? [`Reading the video “${t}”`] : ['Calling the video parser'], tail: ['pulling out the key points'] },
+    ocr:       { head: () => ['Running the vision model on the image'], tail: ['making sense of it'] },
+    translate: { head: () => ['Translating the whole text'], tail: ['keeping the tone'] },
+    geo:       { head: (t) => t ? [`Resolving ${t}`] : ['Resolving the location'], tail: ['working out the route'] },
+    sum:       { head: (t) => t ? [`Pulling the key points on ${t}`] : ['Pulling the key points'], tail: ['keeping what is usable'] },
+    sort:      { head: (t) => t ? [`Sorting out ${t}`] : ['Sorting everything out'], tail: ['grouping by topic'] },
+    judge:     { head: () => ['Working out which reactant runs out first'], tail: ['then the shortcut rule'] },
+    look:      { head: (t) => t ? [`Looking up ${t}`] : ['Checking the sources'], tail: ['keeping what is usable'] },
+    why:       { head: (t) => t ? [`Getting ${t} straight`, `Working out ${t}`] : ['Getting the idea straight'], tail: ['and when it applies', 'then a textbook example'] },
+    life:      { head: () => ['Thinking this one through', 'Turning it over'], tail: ['no rush to conclude', 'finding a reasonable take'] },
+    calc:      { head: (t) => t ? [`Working out ${t}`] : ['Working the numbers'], tail: ['checking units and digits'] },
+    plan:      { head: (t) => t ? [`Laying out the steps for ${t}`] : ['Laying out the steps'], tail: ['pinning each one down'] },
+    draft:     { head: (t) => t ? [`Drafting ${t}`] : ['Drafting the wording'], tail: ['shaping the sentences'] },
+    explain:   { head: (t) => t ? [`Walking through ${t}`] : ['Lining up the concepts'], tail: ['tracing how it works'] },
+    base:      { head: (t) => t ? [`Thinking about ${t}`] : ['Making sense of the question'], tail: ['then answering'] },
   };
   let stagePick = 0;
   function stageKind(question) {
     const q = String(question || '');
     for (const [re, kind] of STAGE_INTENT) if (re.test(q)) return kind;
     return 'base';
+  }
+  function stageKindOf(question, stage) {
+    const k = stageKind(question);
+    // 天气/音乐/新闻/翻译这些工具类不看语体；只有「为什么/讲道理/没归上类」的才分课本还是生活
+    if (k === 'why' || k === 'base' || k === 'explain') return lifeRegister(question) ? 'life' : k;
+    return k;
   }
   function stageLabel(question, stage, count, terms) {
     const zh = getLang() !== 'en';
@@ -673,15 +695,18 @@ async function sendMessage(text, extra = {}) {
     }
     if (stage === 'card') return zh ? '正在智能排版' : 'Laying it out';
     if (stage === 'image') return zh ? '调用视觉理解模型理解' : 'Running the vision model';
-    const kind = stageKind(question);
-    const topic = stageTopic(question);
-    const say = (zh ? STAGE_SAY : STAGE_SAY_EN)[kind] || (zh ? STAGE_SAY.base : STAGE_SAY_EN.base);
-    const list = (say(topic, question) || []).filter(Boolean);
-    if (!list.length) return zh ? '理清一下思路' : 'Making sense of the question';
-    const head = list[0];
-    const tail = list[1];
-    // 一半只发主句，一半主句+补句：看着像边想边说，不是每次都同一套模板
+    const kind = stageKindOf(question, stage);
+    const topic = (kind === 'life') ? '' : stageTopic(question);
+    const table = zh ? STAGE_SAY : STAGE_SAY_EN;
+    const pack = table[kind] || table.base;
     const i = Math.abs(stagePick++);
+    const heads = (pack.head(topic, question) || []).filter(Boolean);
+    if (!heads.length) return zh ? '理清一下思路' : 'Making sense of the question';
+    // 主句轮换：同一类问题不会每次都同一句话
+    const head = heads[i % heads.length];
+    const tails = (pack.tail || []).filter(Boolean);
+    const tail = tails.length ? tails[Math.floor(i / 2) % tails.length] : '';
+    // 一半只发主句，一半主句+补句：看着像边想边说，不是每次都同一套模板
     if (tail && i % 2 === 1) return head + (zh ? '，' : ', ') + tail;
     return head;
   }
@@ -1335,10 +1360,8 @@ function topupHtml(q) {
   return `
     <div class="topup-balance">
       <div class="tb-num" id="tbNum">${total}</div>
-      <div class="tb-label" id="tbLabel">可用额度 · 用完请联系管理员发放</div>
-      ${pool ? `<div class="tb-label" style="margin-top:2px">其中限时额度 ${q.grantSum || 0}</div>` : ''}
+      <div class="tb-label" id="tbLabel">${t('quota', { n: total })}</div>
     </div>
-    ${stock ? `<div class="panel" style="padding:10px 14px;margin-bottom:16px"><div class="group-title" style="margin:0">充值余额 · 剩 ${stock}</div></div>` : ''}
     ${grants ? `<div class="panel" style="padding:10px 14px;margin-bottom:16px"><div class="group-title" style="margin:0 0 8px">限时额度 · 共 ${q.grantSum != null ? q.grantSum : (q.poolLeft || 0)}</div>${grants}</div>` : ''}
 
     <div class="group">
@@ -3562,7 +3585,7 @@ function aboutPage() {
 /* ---------- 更新日志 ---------- */
 const CHANGELOG = [
   {
-    ver: '6.3.7',
+    ver: '6.3.8',
     date: '2026-10-30',
     zh: [
       '情绪中心不再乱跳：只统计你自己说的话，样本少的时候按十二次算，一条困惑不会再顶成百分之百；建议文案也不再每说一句话就重写',
