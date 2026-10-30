@@ -1240,7 +1240,7 @@ function fmtExp(ts) {
 
 function topupHtml(q) {
   const grants = (q.grants || []).map(g =>
-    `<div class="grant-row"><span>${g.amount}${g.left != null && g.left !== g.amount ? ` · 剩 ${g.left}` : ''}</span><span class="g-exp">${fmtExp(g.exp)}</span></div>`).join('');
+    `<div class="grant-row"><span>${g.amount}${g.left != null && g.left !== g.amount ? ` · 剩 ${g.left}` : ''}</span></div>`).join('');
   const total = q.left != null ? q.left : ((q.dailyLeft != null ? q.dailyLeft : 0) + (q.poolLeft || 0));
   const dailyLeft = q.dailyLeft != null ? q.dailyLeft : (q.limit || 0);
   const stock = q.stock || 0;
@@ -1249,7 +1249,7 @@ function topupHtml(q) {
     <div class="topup-balance">
       <div class="tb-num" id="tbNum">${total}</div>
       <div class="tb-label" id="tbLabel">可用额度 · 用完请联系管理员发放</div>
-      ${pool ? `<div class="tb-label" style="margin-top:2px">其中限时额度 ${q.grantSum || 0} · 到期自动失效</div>` : ''}
+      ${pool ? `<div class="tb-label" style="margin-top:2px">其中限时额度 ${q.grantSum || 0}</div>` : ''}
     </div>
     ${stock ? `<div class="panel" style="padding:10px 14px;margin-bottom:16px"><div class="group-title" style="margin:0">充值余额 · 剩 ${stock}</div></div>` : ''}
     ${grants ? `<div class="panel" style="padding:10px 14px;margin-bottom:16px"><div class="group-title" style="margin:0 0 8px">限时额度 · 共 ${q.grantSum != null ? q.grantSum : (q.poolLeft || 0)}</div>${grants}</div>` : ''}
@@ -3475,19 +3475,25 @@ function aboutPage() {
 /* ---------- 更新日志 ---------- */
 const CHANGELOG = [
   {
-    ver: '6.3.1',
+    ver: '6.3.2',
     date: '2026-10-30',
     zh: [
       '情绪中心不再乱跳：只统计你自己说的话，样本少的时候按十二次算，一条困惑不会再顶成百分之百；建议文案也不再每说一句话就重写',
       '化学式补了一批：氢氧化亚铁、四氧化三铁、胆矾、明矾、尿素、重铬酸钾这些常见式子现在点开就有',
       '化学式抽屉的等待改成跟思考动画同一套：文字在前、三个点在后面走，文案后面不再缀省略号',
       '自己这侧的聊天气泡改成纯灰色，去掉了原来那点偏紫的蓝',
+      '抽屉遮罩糊得轻了、压得更暗，菜单出来时底下的内容不再糊成一团',
+      '额度改余额制：注册送 20，不再每天自动补，用完等管理员发放',
+      '充值页只显示额度，不再标注过期时间',
     ],
     en: [
       'The emotion centre no longer jumps around: only your own messages count, and small samples are scaled to twelve so a single confused message cannot read as 100 percent; the written note is no longer rewritten on every message',
       'More formulas in the quick table: iron(II) hydroxide, iron(II,III) oxide, blue vitriol, alum, urea and potassium dichromate all open right away now',
       'The formula drawer now waits with the same animation as thinking: label first, dots after, no trailing ellipsis',
       'Your own bubbles are plain grey now, without the faint blue-purple cast',
+      'The drawer scrim blurs less and dims more, so the page behind no longer melts into mush',
+      'Credits are a plain balance now: 20 on signup, no daily top-up, and the admin hands out more',
+      'The top-up page shows the amount only, with no expiry time',
     ],
   },
   {

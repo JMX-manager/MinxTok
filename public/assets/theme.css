@@ -8073,3 +8073,16 @@ body.no-chemtap .c-mol {
   -webkit-tap-highlight-color: transparent;
 }
 body.no-chemtap .m-chem .c-mol:active { background: none; }
+
+/* 抽屉遮罩（2026-10-30 明轩定）：糊得轻一点，主要靠压暗把底下的内容按下去。
+   弹窗的遮罩不受影响，仍是原来的 3px + 不压暗。 */
+body.drawer-open .scrim,
+body.drawer-closing .scrim {
+  background: rgba(0, 0, 0, 0.38);
+  -webkit-backdrop-filter: blur(1.5px) saturate(0.9);
+  backdrop-filter: blur(1.5px) saturate(0.9);
+}
+[data-theme="light"] body.drawer-open .scrim,
+[data-theme="light"] body.drawer-closing .scrim {
+  background: rgba(0, 0, 0, 0.3);
+}
