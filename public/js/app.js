@@ -642,7 +642,7 @@ async function sendMessage(text, extra = {}) {
       return askConcept ? [`理解${t}的概念`, `讲清${t}的定义`] : [`理清${t}是怎么回事`, `想明白${t}的道理`, `把${t}拆开说清`];
     }, tail: ['把适用条件说清', '补一个课本里的例子', '把容易混的地方标出来'] },
     // 生活/闲聊问题：不套概念、不装懂，就说在想这件事
-    life:      { head: () => ['顺着这话往下想', '琢磨一下这事儿', '先想想为什么会这样', '把这话拆开看看'], tail: ['不急着下结论', '找个说得过去的解释', '说点能听懂的'] },
+    life:      { head: () => ['从现象往回找成因', '把这件事拆成几层来看', '先分清感受和机制', '按常理推一遍这件事'], tail: ['给一个站得住的解释', '看它能不能自圆其说', '再把边界说清'] },
     calc:      { head: (t, q) => { const m = stageMethod(q); if (m && t) return [`${m}${t}`]; return [t ? `按公式计算${t}` : '按公式计算']; }, tail: ['核对单位和有效数字', '验算一遍结果'] },
     plan:      { head: (t) => t ? [`安排${t}的步骤`] : ['排出先后顺序'], tail: ['把每一步定下来', '留点余量'] },
     draft:     { head: (t) => t ? [`起草${t}`] : ['起草一版内容'], tail: ['调整一下措辞', '把语气定下来'] },
@@ -662,7 +662,7 @@ async function sendMessage(text, extra = {}) {
     judge:     { head: () => ['Working out which reactant runs out first'], tail: ['then the shortcut rule'] },
     look:      { head: (t) => t ? [`Looking up ${t}`] : ['Checking the sources'], tail: ['keeping what is usable'] },
     why:       { head: (t) => t ? [`Getting ${t} straight`, `Working out ${t}`] : ['Getting the idea straight'], tail: ['and when it applies', 'then a textbook example'] },
-    life:      { head: () => ['Thinking this one through', 'Turning it over'], tail: ['no rush to conclude', 'finding a reasonable take'] },
+    life:      { head: () => ['Tracing this back to its cause', 'Breaking this into layers'], tail: ['then a defensible explanation', 'checking that it holds up'] },
     calc:      { head: (t) => t ? [`Working out ${t}`] : ['Working the numbers'], tail: ['checking units and digits'] },
     plan:      { head: (t) => t ? [`Laying out the steps for ${t}`] : ['Laying out the steps'], tail: ['pinning each one down'] },
     draft:     { head: (t) => t ? [`Drafting ${t}`] : ['Drafting the wording'], tail: ['shaping the sentences'] },
@@ -707,7 +707,7 @@ async function sendMessage(text, extra = {}) {
     const tails = (pack.tail || []).filter(Boolean);
     const tail = tails.length ? tails[Math.floor(i / 2) % tails.length] : '';
     // 一半只发主句，一半主句+补句：看着像边想边说，不是每次都同一套模板
-    if (tail && i % 2 === 1) return head + (zh ? '，' : ', ') + tail;
+    if (tail && i % 2 === 1 && head.indexOf('这件事') < 0) return head + (zh ? '，' : ', ') + tail;
     return head;
   }
 
@@ -1376,7 +1376,7 @@ function fmtExp(ts) {
 
 function topupHtml(q) {
   const grants = (q.grants || []).map(g =>
-    `<div class="grant-row"><span>${g.amount}</span></div>`).join('');
+    `<div class="grant-row"><span>剩 ${g.left != null ? g.left : g.amount}</span></div>`).join('');
   const total = q.left != null ? q.left : ((q.dailyLeft != null ? q.dailyLeft : 0) + (q.poolLeft || 0));
   const dailyLeft = q.dailyLeft != null ? q.dailyLeft : (q.limit || 0);
   const stock = q.stock || 0;
@@ -1388,7 +1388,7 @@ function topupHtml(q) {
       ${pool ? `<div class="tb-label" style="margin-top:2px">其中限时额度 ${q.grantSum || 0}</div>` : ''}
     </div>
     ${stock ? `<div class="panel" style="padding:10px 14px;margin-bottom:16px"><div class="group-title" style="margin:0">充值余额 · 剩 ${stock}</div></div>` : ''}
-    ${grants ? `<div class="panel" style="padding:10px 14px;margin-bottom:16px"><div class="group-title" style="margin:0 0 8px">限时额度 · 共 ${q.grantSum != null ? q.grantSum : (q.poolLeft || 0)}</div>${grants}</div>` : ''}
+    ${grants ? `<div class="panel" style="padding:10px 14px;margin-bottom:16px"><div class="group-title" style="margin:0 0 8px">限时额度</div>${grants}</div>` : ''}
 
     <div class="group">
       <div class="group-title">充值</div>
@@ -3611,7 +3611,7 @@ function aboutPage() {
 /* ---------- 更新日志 ---------- */
 const CHANGELOG = [
   {
-    ver: '6.3.10',
+    ver: '6.3.11',
     date: '2026-10-30',
     zh: [
       '情绪中心不再乱跳：只统计你自己说的话，样本少的时候按十二次算，一条困惑不会再顶成百分之百；建议文案也不再每说一句话就重写',
