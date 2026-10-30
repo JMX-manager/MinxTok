@@ -3,9 +3,9 @@
 // 底部常驻输入条（箭头发送）、消息气泡、打字机生成动画，并自动保存历史。
 import { openPage, fillPage, setPageLevel, setPageTitle, setActiveNav, playPageSwitch } from './ui.js?v=150';
 import { state } from './state.js?v=12';
-import { renderMarkdown, thinking, linkChem } from './blocks.js?v=172';
+import { renderMarkdown, thinking, linkChem } from './blocks.js?v=173';
 import { renderDraw, splitDraw } from './draw.js?v=48';
-import { setDrawModule } from './blocks.js?v=172';
+import { setDrawModule } from './blocks.js?v=173';
 import { annotateEnglish } from './dict.js?v=33';
 import { haptic } from './haptics.js?v=12';
 import { openDrill } from './drill.js?v=59';

@@ -1,7 +1,7 @@
 // 中文界面里的全局英文点词：单词下划点线，点开是词性 + 中文释义 + 短例句。
 // 查词走后端 /api/dict（代理有道，并按句子挑选义项），前端 localStorage 缓存。
 import { getLang } from './i18n.js?v=118';
-import { chemHtml } from './blocks.js?v=172';
+import { chemHtml } from './blocks.js?v=173';
 
 const CACHE = new Map();
 const LS_PREFIX = 'minxtok.dict.v4.';

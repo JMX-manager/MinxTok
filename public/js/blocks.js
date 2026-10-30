@@ -295,7 +295,10 @@ function autoInlineFormulas(text, hold) {
     let n = 0;
     const mh = (html) => { n++; return hold(html); };
     // 化学先走：反应式里的箭头不能被后面的公式规则抢走
-    let out = replaceBounded(part, CHEM_EQ_INLINE_RE, (m) => isChemEquation(m) ? hold(chemHtml(m)) : m);
+    // 「第1条」「第 2 步」这种序数不是物理量，先整段按住，任何数字规则都别碰（明轩 2026-10-30）
+    const ORDINAL_RE = /第\s?\d+(?:\.\d+)?\s?(?:条|点|步|个|题|问|章|节|项|款|次|页|行|段|部分|种|类|阶段|单元|课|名|位|组|轮|层|级)/g;
+    let out = mapPlain(part, t => t.replace(ORDINAL_RE, (m) => mh(m)));
+    out = replaceBounded(out, CHEM_EQ_INLINE_RE, (m) => isChemEquation(m) ? hold(chemHtml(m)) : m);
     out = replaceBounded(out, CHEM_INLINE_RE, (m) => isChemInline(m) ? hold(chemHtml(m)) : m);
     if (SCI_CUE.test(out)) {
       out = mapPlain(out, t => t.replace(CHEM_BARE_ELEM_RE, (m, lead, sym) => {
