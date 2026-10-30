@@ -601,6 +601,7 @@ function replayReveal() {
 }
 
 function renderPop(data, error) {
+  if (pop) pop.classList.remove('chem');
   popWord.textContent = data && data.word ? data.word : '';
   const phon = data && data.phonetic ? String(data.phonetic).trim() : '';
   popPhon.textContent = phon ? `/${phon.replace(/^\/|\/$/g, '')}/` : '';
@@ -1082,6 +1083,7 @@ function renderChemPop(data, error) {
   const zh = getLang() !== 'en';
   const f = String(d.formula || '').replace(/[↑↓\s"]/g, '');
   const display = d.display || chemPretty(f);
+  pop.classList.add('chem');
   popWord.textContent = display || '';
   let name = String(d.name || '').trim();
   if (!name || name === f || name === display) name = '';
@@ -1104,9 +1106,17 @@ function renderChemPop(data, error) {
     return;
   }
 
-  if (d.phys) popBody.appendChild(chemRow(zh ? '物理' : 'Physical', d.phys, false));
-  if (d.chem) popBody.appendChild(chemRow(zh ? '化学' : 'Chemical', chemTextHtml(d.chem), true));
-  if (!d.phys && !d.chem) {
+  // 一段话说完：不分物理化学、不带方程式，整块展开不滚动
+  const desc = String(d.desc || d.phys || '').trim();
+  if (desc) {
+    const row = document.createElement('div');
+    row.className = 'dp-row';
+    const def = document.createElement('div');
+    def.className = 'dp-def';
+    def.textContent = desc;
+    row.appendChild(def);
+    popBody.appendChild(row);
+  } else {
     const box = document.createElement('div');
     box.className = 'dp-empty';
     box.innerHTML = `<span class="m-thinking"><span class="th-label">${zh ? '正在查这个式子' : 'Looking this one up'}</span><span class="th-dots"><i></i><i></i><i></i></span></span>`;

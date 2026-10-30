@@ -161,6 +161,25 @@ const TABLE = {
 
 
 // 速查表里存的是老的长句，弹框只要关键两三句：按分句边界截，宁短不长
+
+// 明轩 2026-10-30：不要分类、不要方程式，一句话说完就行。
+// 先把带等号/箭头/↑↓ 的分句整段丢掉（只留冒号前的「与酸反应生成铁盐」这种短语），再合成一句。
+function plainDesc(text) {
+  const segs = String(text || '')
+    .replace(/（[^）]{0,40}）/g, '')
+    .replace(/\([^)]{0,40}\)/g, '')
+    .split(/[；;。]/)
+    .map(x => x.trim())
+    .filter(Boolean);
+  const keep = [];
+  for (const seg of segs) {
+    if (!/[=＝→⇌↑↓]/.test(seg)) { keep.push(seg); continue; }
+    const head = seg.split(/[：:]/)[0].trim();
+    if (head && !/[=＝→⇌↑↓]/.test(head)) keep.push(head);
+  }
+  return keep.join('，').replace(/，{2,}/g, '，').replace(/^，|，$/g, '').trim();
+}
+
 function brief(text, max) {
   let s = String(text || '').trim();
   if (!s || s.length <= max) return s;
@@ -211,17 +230,17 @@ function pretty(formula) {
 }
 
 const SYSTEM_EN = [
-  'You are a middle-school chemistry teacher. The user gives a chemical formula, maybe with a state word (solution, powder, gas, solid).',
-  'Be brief. Output one JSON object only, no code fence, no explanation:',
-  '{"name":"English name","phys":"physical properties, 12-28 words: colour, smell, state, solubility; say toxic if it is","chem":"chemical properties, 18-40 words: what it reacts with, and what it gives if that is the exam point; at most one equation","note":"a short note about that state, under 12 words; empty string if none"}',
-  'No essays, no uses, no long lists. Only the substance that really matches this formula; never invent a reaction.',
+  'You are a middle-school chemistry teacher. The user gives a chemical formula, maybe with a state word.',
+  'Output one JSON object only, no code fence, no explanation:',
+  '{"name":"English name","desc":"one short sentence, 12-28 words: colour, state, smell, soluble or not, say toxic if it is, then what it readily reacts with and what that gives; no conditions, no balancing","note":"under 12 words about that state; empty string if none"}',
+  'Hard rules: one paragraph, no sections, no chemical equations (no equals sign, arrows or coefficients), no uses or trivia. Never invent.',
 ].join('\n');
 
 const SYSTEM = [
   '你是一个中学化学老师，说话很省。用户给出一个化学式（可能附状态词）。',
   '只输出一个 JSON 对象，不要代码块、不要解释：',
-  '{"name":"物质的中文名","phys":"物理性质，20~45字，只写颜色、气味、状态、溶解性；有毒就写「有毒」，不展开","chem":"化学性质，30~70字，只写能与什么反应；考点相关的可以写生成什么；最多一个方程式，用 = 和 ↑↓","note":"这种状态的补充说明，20字内；没有就给空字符串"}',
-  '别写推断过程、别写用途科普、别列一大串；一句话说完就停。只写这个式子真实对应的物质，不确定的不写，绝不编造。',
+  '{"name":"物质的中文名","desc":"一句话，30~60字：什么颜色、什么状态、有没有气味、溶不溶于水，有毒就写「有毒」；再接一句它容易和什么反应、生成什么（不谈条件、不写配平）","note":"这种状态的补充，15字内；没有就给空字符串"}',
+  '硬要求：不分段、不分类、不写化学方程式（不许出现等号、箭头、↑↓、系数）、不写用途科普；不确定的不写，绝不编造。',
 ].join('\n');
 
 function stripFence(t) {
@@ -277,13 +296,12 @@ async function askModel(env, formula, state, lang) {
     if (!j) return null;
     const out = {
       name: String(j.name || '').trim().slice(0, 24),
-      phys: String(j.phys || '').trim().slice(0, 120),
-      chem: String(j.chem || '').trim().slice(0, 180),
-      note: String(j.note || '').trim().slice(0, 60),
+      desc: plainDesc(j.desc || [j.phys, j.chem].filter(Boolean).join('；')).slice(0, 120),
+      note: String(j.note || '').trim().slice(0, 40),
     };
-    if (!out.name || (!out.phys && !out.chem)) return null;
+    if (!out.name || !out.desc) return null;
     // 只剩半句话（被截断/模型偷懒）就不算查到了，交给前端重试
-    if (out.phys && out.phys.length < 8 && (!out.chem || out.chem.length < 8)) return null;
+    if (out.desc.length < 8) return null;
     return out;
   } catch (_) {
     return null;
@@ -304,7 +322,7 @@ export async function handleChem(request, env, ctx) {
 
   const cache = typeof caches !== 'undefined' ? caches.default : null;
   const key = cache
-    ? new Request(`https://minxtok.local/chem/v5/${lang}/${encodeURIComponent(formula)}/${encodeURIComponent(state)}`)
+    ? new Request(`https://minxtok.local/chem/v6/${lang}/${encodeURIComponent(formula)}/${encodeURIComponent(state)}`)
     : null;
   if (cache) {
     const hit = await cache.match(key);
@@ -317,21 +335,20 @@ export async function handleChem(request, env, ctx) {
   // 英文界面不走中文速查表，直接让模型用英文写一份
   const hit = lang === 'zh' ? (TABLE[formula] || null) : null;
   let data = hit
-    ? { name: hit.name, phys: brief(String(hit.phys || '').replace(/（[^）]*）/g, '').replace(/\([^)]*\)/g, ''), 34), chem: brief(hit.chem, 58), note: '' }
+    ? { name: hit.name, desc: brief(plainDesc(`${hit.phys || ''}；${hit.chem || ''}`), 64), note: '' }
     : await askModel(env, formula, state, lang);
   // 一次没成再问一次：Workers AI 偶发抖动，不该让整张卡停在「没连上」
   if (!data && !hit) data = await askModel(env, formula, state, lang);
-  if (!data) data = { name: formula, phys: '', chem: '', note: '' };
+  if (!data) data = { name: formula, desc: '', note: '' };
 
   const payload = {
-    ok: !!(data.phys || data.chem),
+    ok: !!data.desc,
     formula,
     lang,
     display: pretty(formula),
     state,
     name: data.name || formula,
-    phys: data.phys || '',
-    chem: data.chem || '',
+    desc: data.desc || '',
     note: data.note || '',
   };
 

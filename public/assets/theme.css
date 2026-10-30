@@ -8086,3 +8086,9 @@ body.drawer-closing .scrim {
 [data-theme="light"] body.drawer-closing .scrim {
   background: rgba(0, 0, 0, 0.3);
 }
+
+/* 化学式一句话简介：整块摊开，不出滚动条（明轩 2026-10-30） */
+.dict-pop.chem { max-height: none; }
+.dict-pop.chem .dp-body { max-height: none; overflow: visible; }
+.dict-pop.chem .dp-row { padding: 1px 0 0; }
+.dict-pop.chem .dp-def { font-size: .95em; line-height: 1.52; }
