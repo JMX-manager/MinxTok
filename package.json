@@ -1,0 +1,13 @@
+{
+  "name": "minxtok",
+  "version": "6.2.0",
+  "private": true,
+  "type": "module",
+  "description": "A Chinese AI chat app on Cloudflare: streaming chat, emotion insights, formula rendering, study center.",
+  "scripts": {
+    "build": "node scripts/build-pages.mjs && node --check dist/_worker.js",
+    "test": "node --test tests/render.test.mjs",
+    "deploy": "npm run build && npx wrangler pages deploy dist --project-name minxtok --branch main"
+  },
+  "license": "MIT"
+}

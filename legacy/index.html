@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>MinxTok · 通道路由</title>
+<meta name="description" content="聊天、日记、学习、游戏，和虾虾在一个安静的小站里慢慢说。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="MinxTok · 明叙">
+<meta property="og:description" content="聊天、日记、学习、游戏，和虾虾在一个安静的小站里慢慢说。">
+<meta property="og:image" content="https://jmx-manager.github.io/MinxTok/og-card.png?v=3">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="MinxTok · 明叙">
+<meta name="twitter:description" content="聊天、日记、学习、游戏，和虾虾在一个安静的小站里慢慢说。">
+<meta name="twitter:image" content="https://jmx-manager.github.io/MinxTok/og-card.png?v=3">
+<link rel="preload" href="fonts/PingFangSite-Regular.woff2?v=2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{
+  font-family:"PingFangMXT";
+  src:url("fonts/PingFangSite-Regular.woff2?v=2") format("woff2");
+  font-weight:100 900; font-style:normal; font-display:block;
+}
+/* ============================================================
+   MinxTok · 明叙  —  通道路由
+   秩序：一屏四层，逐层加重。
+   ① 品牌（最大最亮） ② 通道（主信息） ③ 动作（唯一实心按钮）
+   ④ 从属（一行小字，最低对比）
+   其余一律去掉，靠留白和字重分级，不靠灰字的数量。
+   ============================================================ */
+:root{
+  --font:"PingFangMXT","PingFang SC",-apple-system,BlinkMacSystemFont,"Hiragino Sans GB","Microsoft YaHei","Segoe UI",sans-serif;
+
+  /* 墨黑 + 冷银（与访客端同一套秩序） */
+  --bg:#000000;
+  --surface:#0f1114;
+  --surface2:#15181d;
+  --line:#1e2228;
+  --line-soft:#15181c;
+  --text:#f2f4f7;
+  --text-2:#9ba3ae;
+  --text-3:#5f6772;
+  --accent:#c8d4e4;
+  --accent-2:#8fa3bd;
+  --focus:rgba(200,212,228,.18);
+  --ok:#7fd1a6; --warn:#e0c07a; --bad:#e08a8a;
+  --card:#0c0e11;
+  --grad:linear-gradient(135deg,#dfe7f0,#9fb2c8);
+  --grad-txt:linear-gradient(135deg,#ffffff,#a8b8cc);
+  --btntxt:#08090b;
+  --field:#0a0c0f;
+  --fieldline:#1e2228;
+  --radius:14px;
+}
+html[data-theme="light"]{
+  --bg:#fbfbfc;
+  --surface:#ffffff;
+  --surface2:#f7f8fa;
+  --line:#e8eaee;
+  --line-soft:#f0f1f4;
+  --text:#0d0f12;
+  --text-2:#5f6772;
+  --text-3:#9ba3ae;
+  --accent:#1b2430;
+  --accent-2:#4a5766;
+  --focus:rgba(27,36,48,.10);
+  --ok:#1f9d63; --warn:#b0812a; --bad:#c05050;
+  --card:#ffffff;
+  --grad:linear-gradient(135deg,#1b2430,#3a4657);
+  --grad-txt:linear-gradient(135deg,#0d0f12,#39424f);
+  --btntxt:#ffffff;
+  --field:#f7f8fa;
+  --fieldline:#e8eaee;
+  --radius:14px;
+}
+
+*{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0;}
+body{
+  font-family:var(--font);
+  background:var(--bg); color:var(--text);
+  min-height:100vh; min-height:100dvh;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:0 26px 44px;
+  -webkit-font-smoothing:antialiased;
+  transition:background .3s cubic-bezier(.4,0,.2,1), color .3s cubic-bezier(.4,0,.2,1);
+}
+body::before{
+  content:''; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    repeating-linear-gradient(115deg, rgba(255,255,255,.022) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(205deg, rgba(255,255,255,.014) 0 1px, transparent 1px 4px);
+  opacity:.85; mix-blend-mode:overlay;
+}
+html[data-theme="light"] body::before{
+  background-image:
+    repeating-linear-gradient(115deg, rgba(0,0,0,.016) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(205deg, rgba(0,0,0,.010) 0 1px, transparent 1px 4px);
+}
+body>*{position:relative; z-index:1;}
+
+.wrap{
+  width:100%; max-width:400px;
+  display:flex; flex-direction:column; align-items:center;
+  text-align:center;
+  padding-top:6vh;
+}
+
+/* ---------- ① 品牌 ---------- */
+.brand-hero{text-align:center;}
+.logo{
+  font-size:30px; font-weight:600; letter-spacing:.02em; line-height:1.25;
+  color:var(--text);
+  animation:up .7s cubic-bezier(.2,.9,.3,1.02) both;
+}
+.sub{
+  margin-top:10px; font-size:12px; color:var(--text-3);
+  letter-spacing:.22em; text-transform:uppercase;
+  animation:up .7s .06s cubic-bezier(.2,.9,.3,1.02) both;
+}
+@keyframes up{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+
+/* ---------- ② 通道（主信息，用一条实线起头） ---------- */
+.channel{
+  margin-top:52px; width:100%; text-align:left;
+  animation:up .7s .12s cubic-bezier(.2,.9,.3,1.02) both;
+}
+.ch-kind{
+  font-size:10px; color:var(--text-2); letter-spacing:.34em; text-indent:.34em;
+}
+.ch-url{
+  margin-top:14px; padding-top:14px;
+  border-top:1px solid var(--line);
+  font-size:15px; font-weight:500; color:var(--text); line-height:1.55;
+  word-break:break-all; letter-spacing:.01em;
+}
+
+/* ---------- ③ 动作（全场唯一实心） ---------- */
+.enter{
+  margin-top:44px; width:100%;
+  position:relative; overflow:hidden;
+  border:none; cursor:pointer; border-radius:12px;
+  padding:16px 0; font-family:inherit;
+  font-size:15.5px; font-weight:600; letter-spacing:.06em;
+  background:var(--grad); color:var(--btntxt);
+  transition:transform .18s cubic-bezier(.2,.9,.3,1.06), opacity .2s;
+  animation:up .7s .18s cubic-bezier(.2,.9,.3,1.02) both;
+}
+.enter:hover{opacity:.92;}
+.enter:active{transform:scale(.984);}
+.enter[disabled]{cursor:default; opacity:.75;}
+.enter .sheen{
+  position:absolute; top:0; bottom:0; width:38%;
+  background:linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
+  transform:translateX(-140%); pointer-events:none;
+}
+.enter.busy .sheen{animation:sweep .95s cubic-bezier(.4,0,.2,1) infinite;}
+@keyframes sweep{to{transform:translateX(360%);}}
+.enter .lbl{position:relative; z-index:1;}
+#go{display:none;}
+
+/* ---------- ④ 从属（一行，最低对比，绝不铺开） ---------- */
+.foot{
+  margin-top:34px; width:100%;
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  animation:up .7s .24s cubic-bezier(.2,.9,.3,1.02) both;
+}
+.foot .meta{font-size:10.5px; color:var(--text-3); letter-spacing:.16em;}
+.foot .dotsep{width:2px; height:2px; border-radius:50%; background:var(--text-3);}
+.offline-bar{
+  display:flex; align-items:center; gap:8px;
+  margin:14px auto; padding:10px 14px; max-width:420px;
+  font-size:13px; line-height:1.5; color:#ffb4b4;
+  background:rgba(201,106,106,.12);
+  border:1px solid rgba(201,106,106,.38);
+  border-radius:10px;
+}
+.offline-bar .dot{
+  width:7px; height:7px; border-radius:50%; background:#e07070; flex:0 0 auto;
+  box-shadow:0 0 0 0 rgba(224,112,112,.6); animation:offPulse 1.8s infinite;
+}
+@keyframes offPulse{
+  0%{box-shadow:0 0 0 0 rgba(224,112,112,.55);}
+  70%{box-shadow:0 0 0 9px rgba(224,112,112,0);}
+  100%{box-shadow:0 0 0 0 rgba(224,112,112,0);}
+}
+#go[aria-disabled="true"]{opacity:.5; pointer-events:none;}
+.tglink{
+  background:none; border:none; padding:0; cursor:pointer; font-family:inherit;
+  font-size:10.5px; color:var(--text-3); letter-spacing:.16em;
+  transition:color .2s;
+}
+.tglink:hover{color:var(--text-2);}
+.tglink:active{color:var(--text);}
+.foot .sep{color:var(--text-3); font-size:10.5px; letter-spacing:.16em;}
+.adm{
+  background:none; border:none; padding:0; cursor:pointer; font-family:inherit;
+  font-size:10.5px; color:var(--text-3); letter-spacing:.16em;
+  transition:color .2s;
+}
+.adm:hover{color:var(--text-2);}
+.adm:active{color:var(--text);}
+
+/* ---------- 管理后台登录弹层 ---------- */
+#adm{
+  position:fixed; inset:0; z-index:120;
+  background:var(--bg);
+  display:none; align-items:center; justify-content:center;
+  padding:0 30px;
+}
+#adm.on{display:flex; animation:fadeIn .3s cubic-bezier(.4,0,.2,1) both;}
+.adm-box{width:100%; max-width:360px;}
+.adm-title{font-size:22px; font-weight:600; letter-spacing:.02em; color:var(--text); text-align:left;}
+.adm-sub{margin-top:10px; font-size:11px; color:var(--text-3); letter-spacing:.28em; text-transform:uppercase; text-align:left;}
+.adm-rows{margin-top:26px;}
+.adm-row{display:flex; align-items:center; gap:14px; border-bottom:1px solid var(--line); padding:15px 2px; transition:border-color .22s, opacity .28s, max-height .3s, padding .3s;}
+.adm-row.hide{opacity:0; max-height:0; padding:0 2px; border-bottom-color:transparent; overflow:hidden; pointer-events:none;}
+.adm-row:focus-within{border-bottom-color:var(--accent);}
+  .adm-row.grayed{opacity:.35; pointer-events:none; filter:grayscale(1);}
+  .adm-row.grayed .adm-in{color:var(--text-3);}
+.adm-row .no{flex:0 0 auto; font-size:11px; letter-spacing:.14em; color:var(--text-3); font-weight:600; width:20px;}
+.adm-in{
+  flex:1; width:100%; padding:0; min-width:0;
+  background:none; color:var(--text);
+  border:none; border-radius:0;
+  font-family:inherit; font-size:15px;
+  outline:none; -webkit-appearance:none;
+}
+.adm-in::placeholder{color:var(--text-3);}
+.adm-in:focus{border:none; box-shadow:none;}
+.adm-msg{min-height:17px; margin-top:16px; font-size:12px; color:var(--bad); letter-spacing:.06em; text-align:left;}
+.adm-go{
+  margin-top:26px; width:100%; position:relative; overflow:hidden;
+  border:none; cursor:pointer; border-radius:12px; padding:15px 0;
+  font-family:inherit; font-size:15px; font-weight:600; letter-spacing:.08em;
+  background:var(--grad); color:var(--btntxt);
+  transition:transform .18s cubic-bezier(.2,.9,.3,1.06), opacity .2s;
+}
+.adm-go:hover{opacity:.92;}
+.adm-go:active{transform:scale(.984);}
+.adm-go[disabled]{cursor:default; opacity:.7;}
+.adm-go .sheen{
+  position:absolute; top:0; bottom:0; width:38%;
+  background:linear-gradient(100deg, transparent, rgba(255,255,255,.55), transparent);
+  transform:translateX(-140%); pointer-events:none;
+}
+.adm-go.busy .sheen{animation:sweep .95s cubic-bezier(.4,0,.2,1) infinite;}
+.adm-go .lbl{position:relative; z-index:1;}
+.adm-back{
+  margin-top:30px; background:none; border:none; padding:0; cursor:pointer; font-family:inherit;
+  font-size:11px; color:var(--text-2); letter-spacing:.2em;
+  display:inline-block; transition:color .2s;
+}
+.adm-back:hover{color:var(--text);}
+.adm-box.shake{animation:admshake .42s cubic-bezier(.36,.07,.19,.97) both;}
+@keyframes admshake{10%,90%{transform:translateX(-2px);} 20%,80%{transform:translateX(3px);} 30%,50%,70%{transform:translateX(-5px);} 40%,60%{transform:translateX(5px);}}
+
+</style>
+</head>
+<body>
+
+  <div class="wrap">
+    <div class="brand-hero">
+      <h1 class="logo">MinxTok</h1>
+      <div class="sub">通道中转 · 一键直达</div>
+    </div>
+
+    <div class="channel">
+      <div class="ch-kind">当前通道</div>
+      <div class="ch-url" id="ch-url">Connecting…</div>
+    </div>
+
+    <button class="enter" id="enter">
+      <span class="sheen"></span>
+      <span class="lbl">进入通道</span>
+    </button>
+
+    <div class="foot">
+      <span class="meta" id="foot-meta">在线</span>
+      <span class="dotsep"></span>
+      <button class="tglink" id="tglink">深浅色</button>
+      <span class="sep">·</span>
+      <button class="adm" id="adm-open">管理后台</button>
+    </div>
+  </div>
+
+  <div id="offline-bar" class="offline-bar" style="display:none">
+    <span class="dot"></span><span id="offline-text">网关服务已关闭</span>
+  </div>
+
+  <a id="go" href="#"></a>
+
+  <!-- 建立连接遮罩 -->
+  <!-- 管理后台：登录（失败不暴露后台地址） -->
+  <div id="adm">
+    <div class="adm-box">
+      <div class="adm-title">管理后台</div>
+      <div class="adm-sub">Administrator Access</div>
+      <div class="adm-rows">
+        <div class="adm-row">
+          <span class="no">01</span>
+          <input class="adm-in" id="adm-key" type="text" placeholder="Root Key" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off">
+        </div>
+        <div class="adm-row">
+          <span class="no" id="adm-no2">02</span>
+          <input class="adm-in" id="adm-qa" type="text" placeholder="EMA Key" autocomplete="off" spellcheck="false" autocapitalize="off" autocorrect="off">
+        </div>
+      </div>
+      <div class="adm-msg" id="adm-msg"></div>
+      <button class="adm-go" id="adm-go"><span class="lbl">验证并进入</span></button>
+      <button class="adm-back" id="adm-back">返回</button>
+    </div>
+  </div>
+
+<script src="config.js?v=429870d"></script>
+<script>
+(function(){
+  /* ---------- 深浅色：跟随系统 + 手动切换（localStorage 记忆） ---------- */
+  var THEME_KEY='mxtNavTheme';
+  function sysDark(){ return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; }
+  function pref(){ try{ return localStorage.getItem(THEME_KEY)||'auto'; }catch(e){ return 'auto'; } }
+  function isDark(){ var p=pref(); return p==='auto'? sysDark() : p==='dark'; }
+  function applyTheme(){
+    document.documentElement.setAttribute('data-theme', isDark()?'dark':'light');
+  }
+  applyTheme();
+  /* 跟随系统深浅色：auto 模式下系统主题一变就实时跟随（新增 addListener 回退，兼容老 WebView） */
+  if(window.matchMedia){
+    try{
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      var onSysChange = function(){ if(pref()==='auto') applyTheme(); };
+      if(mq.addEventListener) mq.addEventListener('change', onSysChange);
+      else if(mq.addListener) mq.addListener(onSysChange);
+    }catch(e){}
+  }
+  /* 页面从后台回到前台（手机切回）时，重新按当前系统主题校准，避免系统已切但页面没更新 */
+  try{
+    document.addEventListener('visibilitychange', function(){ if(pref()==='auto') applyTheme(); });
+    window.addEventListener('focus', function(){ if(pref()==='auto') applyTheme(); });
+  }catch(e){}
+  document.getElementById('tglink').addEventListener('click', function(){
+    try{ localStorage.setItem(THEME_KEY, isDark()?'light':'dark'); }catch(e){}
+    applyTheme();
+  });
+
+  /* ---------- 通道地址 ---------- */
+  var url = (window.LATEST_URL || "").trim();
+  var uEl = document.getElementById('ch-url');
+  var go  = document.getElementById('go');
+
+  if(url){
+    uEl.textContent = url;
+    go.href = url;
+    probeChannel(url);
+  }else{
+    uEl.textContent = "暂未配置通道地址";
+    uEl.style.color = "var(--bad)";
+    document.getElementById('foot-meta').textContent = "离线";
+    showOffline("通道地址尚未配置，请联系管理员");
+  }
+
+  /* 通道探活：不可达则明示状态，避免朋友点了跳 404 一头雾水 */
+  function showOffline(reason){
+    var bar = document.getElementById('offline-bar');
+    if(!bar) return;
+    bar.style.display = "flex";
+    var t = document.getElementById('offline-text');
+    if(t) t.textContent = reason;
+    if(go) go.setAttribute('aria-disabled','true');
+    var fm = document.getElementById('foot-meta'); if(fm) fm.textContent = "通道离线";
+  }
+  function clearOffline(){
+    var bar = document.getElementById('offline-bar');
+    if(bar) bar.style.display = "none";
+    if(go) go.removeAttribute('aria-disabled');
+    var fm = document.getElementById('foot-meta'); if(fm) fm.textContent = "通道正常";
+  }
+  function probeChannel(u){
+    var done=false;
+    var to=setTimeout(function(){ if(!done){ done=true; showOffline("网关服务无响应，可能已关闭或正在重启"); } }, 8000);
+    /* 关键：no-cors 的 fetch 拿不到真实状态码（opaque 响应），隧道返回 404 页面时
+       TCP 依然连通、fetch 也会 resolve，导致「404 却显示通道正常」。
+       所以改为「必须能真正解码一张图片」才算在线：用访客端真实存在的头像资源做探针，
+       404 错误页不是图片 → onerror → 判离线，从而不再误报。
+       主探针失败时再退回 favicon 二次校验，双失败才判离线。 */
+    var okCount=0, failCount=0;
+    function settle(){
+      if(done) return;
+      if(okCount>0){ done=true; clearTimeout(to); clearOffline(); }
+      else if(failCount>=2){ done=true; clearTimeout(to); showOffline("通道地址已失效或网关已关闭"); }
+    }
+    var base = u.replace(/\/$/,'');
+    /* 主探针：加载门户自带的真实图片资源（og-card.png / 头像），能解码=在线 */
+    try{
+      var im=new Image();
+      var t2=setTimeout(function(){ failCount++; settle(); }, 8000);
+      im.onload=function(){ clearTimeout(t2); okCount++; settle(); };
+      im.onerror=function(){ clearTimeout(t2); failCount++; settle(); };
+      im.src=base+'/og-card.png?_p='+Date.now();
+    }catch(e){ failCount++; settle(); }
+    /* 二次探针：favicon 也要能解码成图片 */
+    try{
+      var im2=new Image();
+      var t3=setTimeout(function(){ failCount++; settle(); }, 8000);
+      im2.onload=function(){ clearTimeout(t3); okCount++; settle(); };
+      im2.onerror=function(){ clearTimeout(t3); failCount++; settle(); };
+      im2.src=base+'/favicon.ico?_p='+Date.now();
+    }catch(e){ failCount++; settle(); }
+  }
+
+  /* ---------- 管理后台登录 ---------- */
+  var admOpen = document.getElementById('adm-open');
+  var adm     = document.getElementById('adm');
+  var admKey  = document.getElementById('adm-key');
+  var admQa   = document.getElementById('adm-qa');
+  var admRow2 = admQa ? admQa.closest('.adm-row') : null;
+  var admMsg  = document.getElementById('adm-msg');
+  var admGo   = document.getElementById('adm-go');
+  var admBack = document.getElementById('adm-back');
+  var admBox  = adm.querySelector('.adm-box');
+
+  var ROOT_KEY = 'eGlhb3hpYWxvdmVzdGhyZWUtaW5ncmVkaWVudGR1bXBsaW5ncy4=';  // 底钥（暗号转码）
+  var PASS_KEY = 'MXK-7f3a91c4d2e8';                    // 通行密钥，随机更换，虾虾维护
+  // 当日钥匙：底钥 + 日期 再整体 Base64；每天不同，向虾虾索取
+  function todayKey(){
+    function b64(str){
+      var out='', tbl='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+      for(var i=0;i<str.length;i+=3){
+        var c1=str.charCodeAt(i), c2=str.charCodeAt(i+1), c3=str.charCodeAt(i+2);
+        out+=tbl.charAt(c1>>2);
+        out+=tbl.charAt(((c1&3)<<4)|(isNaN(c2)?0:c2>>4));
+        out+=isNaN(c2)?'=':tbl.charAt(((c2&15)<<2)|(isNaN(c3)?0:c3>>6));
+        out+=isNaN(c3)?'=':tbl.charAt(c3&63);
+      }
+      return out;
+    }
+    var d=new Date();
+    var ds=''+d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2);
+    return b64(ROOT_KEY+ds);
+  }
+  // 失败提示：固定顺序循环（不随机，避免连点几下就"花样换"，让人看出是假提示）
+  var FAILS = ['通道未授权', '通道未授权', '通道未授权', '隧道握手失败', '节点不在当前网段'];
+  var failIdx = 0;
+  function nextFail(){
+    var w = FAILS[failIdx % FAILS.length];
+    failIdx++;
+    return w;
+  }
+
+  // 01 = Root Key（底钥），02 = EMA Key（今日瞬时钥）：两把都必须对
+  function syncRow2(){ }   // 保留占位，行不再折叠
+
+  function openAdm(){
+    adm.classList.add('on'); admMsg.textContent='';
+    admKey.value=''; if(admQa) admQa.value='';
+    setRow2Gray(false);
+    setTimeout(function(){ try{admKey.focus();}catch(e){} }, 240);
+  }
+  // 01 粘到通行密钥（MXK- 前缀）→ 02 自动灰置，直接可进
+  function setRow2Gray(on){
+    if(!admRow2) return;
+    if(on) admRow2.classList.add('grayed'); else admRow2.classList.remove('grayed');
+    if(on && admQa) admQa.value='';
+  }
+  function keyLooksLikePass(v){ return /^MXK-/i.test((v||'').trim()); }
+  function closeAdm(){ adm.classList.remove('on'); }
+
+  admOpen.addEventListener('click', openAdm);
+  admBack.addEventListener('click', closeAdm);
+  adm.addEventListener('click', function(e){ if(e.target===adm) closeAdm(); });
+  admKey.addEventListener('input', function(){
+    var pk = keyLooksLikePass(admKey.value);
+    setRow2Gray(pk);
+  });
+  admKey.addEventListener('keydown', function(e){
+    if(e.key==='Enter'){
+      if(keyLooksLikePass(admKey.value)) admGo.click();
+      else { try{admQa.focus();}catch(err){} }
+    }
+  });
+  if(admQa) admQa.addEventListener('keydown', function(e){ if(e.key==='Enter') admGo.click(); });
+
+  admGo.addEventListener('click', function(){
+    if(admGo.disabled) return;
+    var v = admKey.value.trim();
+    var a = (admQa && admQa.value || '').trim();
+    var isPass = keyLooksLikePass(v);
+    if(!isPass && (v !== ROOT_KEY || a !== todayKey())){
+      admMsg.style.color = 'var(--bad)';
+      admMsg.textContent = nextFail();
+      admBox.classList.remove('shake'); void admBox.offsetWidth; admBox.classList.add('shake');
+      if(navigator.vibrate){ try{ navigator.vibrate(14); }catch(e){} }
+      return;
+    }
+    admGo.disabled = true;
+    admGo.classList.add('busy');
+    admMsg.style.color = 'var(--text-2)';
+    admMsg.textContent = '正在核实凭据…';
+    if(navigator.vibrate){ try{ navigator.vibrate(10); }catch(e){} }
+
+    setTimeout(function(){
+      if(isPass || (v === ROOT_KEY && a === todayKey())){
+        admMsg.style.color = 'var(--text-2)';
+        admMsg.textContent = '身份已确认 · 正在进入';
+        var target = (window.ADMIN_URL||'').trim();
+        setTimeout(function(){
+          if(target){
+            var jump = isPass
+              ? target + (target.indexOf('?')>-1?'&':'?') + 'token=' + encodeURIComponent(v) + '&adm=1'
+              : target + (target.indexOf('?')>-1?'&':'?') + 'adm=1&key=' + encodeURIComponent(v) + '&ema=' + encodeURIComponent(a);
+            window.location.href = jump;
+          }
+          else{
+            admMsg.style.color = 'var(--bad)';
+            admMsg.textContent = nextFail();
+            admGo.disabled=false; admGo.classList.remove('busy');
+          }
+        }, 520);
+      }else{
+        admMsg.style.color = 'var(--bad)';
+        admMsg.textContent = nextFail();
+        admBox.classList.remove('shake'); void admBox.offsetWidth; admBox.classList.add('shake');
+        if(navigator.vibrate){ try{ navigator.vibrate(14); }catch(e){} }
+        admGo.disabled=false; admGo.classList.remove('busy');
+      }
+    }, 760);
+  });
+
+  /* ---------- 进入通道：蓄势一下再跳转（转圈动画在用户端加载页） ---------- */
+  var btn = document.getElementById('enter');
+  var lblEl = btn.querySelector('.lbl');
+  var jumpingUntil = 0;
+
+  function resetEnterBtn(){
+    if(Date.now() < jumpingUntil) return;   // 正在跳转，别乱复位
+    btn.disabled = false;
+    btn.classList.remove('busy');
+    lblEl.textContent = '进入通道';
+  }
+
+  btn.addEventListener('click', function(){
+    if(!url || btn.disabled) return;
+    btn.disabled = true;
+    btn.classList.add('busy');
+    lblEl.textContent = 'Entering';
+    jumpingUntil = Date.now() + 1500;
+    if(navigator.vibrate) { try{ navigator.vibrate(10); }catch(e){} }
+
+    setTimeout(function(){ window.location.href = url; }, 180);
+  });
+
+  /* ★从用户端返回（后退/退出登录）→ 浏览器可能用 bfcache 还原页面，
+     那时按钮还停在 disabled + “Entering”，点着没反应。
+     在 pageshow / visibilitychange 时复位按钮，保证可再次进入。 */
+  window.addEventListener('pageshow', function(e){
+    if(e && e.persisted) resetEnterBtn();   // bfcache 还原
+    else if(document.visibilityState==='visible') resetEnterBtn();
+  });
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState==='visible') resetEnterBtn();
+  });
+  window.addEventListener('focus', resetEnterBtn);
+})();
+</script>
+</body>
+</html>

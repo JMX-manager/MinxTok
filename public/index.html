@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, interactive-widget=resizes-content">
+<meta name="theme-color" content="#0a0a0b" id="metaTheme">
+<script>
+  // 首屏前先落主题：登录页和聊天页共用一套「日出日落」判断，就不会一深一浅
+  (function () {
+    var mode = 'auto';
+    var geo = { lat: 41.88, lon: 123.92 };
+    // 存储可能被系统/隐私模式禁用，读写失败也要继续算主题，不能停在 HTML 默认的深色
+    try {
+      mode = localStorage.getItem('minxtok.themeMode') || 'auto';
+      var g = JSON.parse(localStorage.getItem('minxtok.geo') || 'null');
+      if (g && typeof g.lat === 'number' && Date.now() - g.at < 6 * 3600 * 1000) geo = g;
+    } catch (e) { /* 忽略存储异常 */ }
+
+    var t = (mode === 'dark' || mode === 'light') ? mode : 'auto';
+    if (t === 'auto') {
+      try {
+        var now = new Date();
+        var start = new Date(now.getFullYear(), 0, 0);
+        var N = Math.floor((now - start) / 86400000);
+        var rad = Math.PI / 180;
+        var dec = -23.44 * rad * Math.cos((2 * Math.PI * (N + 10)) / 365);
+        var cosH = -Math.tan(geo.lat * rad) * Math.tan(dec);
+        var sunrise = 0, sunset = 24;
+        if (cosH > -1 && cosH < 1) {
+          var H = Math.acos(cosH) / rad;
+          var tz = -now.getTimezoneOffset() / 60;
+          var noonUTC = 12 - geo.lon / 15;
+          sunrise = noonUTC - H / 15 + tz;
+          sunset = noonUTC + H / 15 + tz;
+        }
+        var h = now.getHours() + now.getMinutes() / 60;
+        t = (h >= sunrise && h < sunset) ? 'light' : 'dark';
+      } catch (e2) {
+        t = 'light';
+      }
+    }
+
+    document.documentElement.dataset.theme = t;
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', t === 'dark' ? '#0a0a0b' : '#f6f6f7');
+  })();
+</script>
+<script>
+  // 数理字体：在样式加载前挂到 html 上，避免首屏闪一下衬线
+  (function () {
+    try {
+      var v = localStorage.getItem('minxtok.mathfont') === 'sans' ? 'sans' : 'serif';
+      document.documentElement.setAttribute('data-mathfont', v);
+    } catch (e) {
+      document.documentElement.setAttribute('data-mathfont', 'serif');
+    }
+  })();
+</script>
+<script>
+  // 安卓微信：键盘、相册、拍摄会改 visualViewport 高度，重排时整页会“形变”。
+  // 用像素高度承接可视区；打开文件选择器期间冻结高度，回来再同步。
+  (function () {
+    var root = document.documentElement;
+    var vv = window.visualViewport;
+    var stable = (vv && vv.height) || window.innerHeight || root.clientHeight || 0;
+    var holdUntil = 0;
+    var timer = 0;
+    function apply(h) {
+      if (!h || h < 120) return;
+      root.style.setProperty('--app-height', Math.round(h) + 'px');
+    }
+    function current() { return vv ? vv.height : window.innerHeight; }
+    function sync() {
+      if (Date.now() < holdUntil) return;
+      var h = current();
+      if (!h) return;
+      if (h < stable * 0.3) return; // 键盘/相册切换瞬间的异常值，不当真
+      if (h > stable && !vv) stable = window.innerHeight || h;
+      apply(h);
+    }
+    // 跟手（明轩 2026-10-29 第三次）：不再攒防抖、也不再补过渡，可视视口每变一帧就跟一帧。
+    // 之前「延时 24ms + 高度 220ms 过渡」是两段延迟叠一起，键盘已经到顶了页面还在往上爬。
+    var raf = 0;
+    function schedule() {
+      if (raf) return;
+      raf = requestAnimationFrame(function () { raf = 0; sync(); });
+    }
+    window.__minxHoldViewport = function () { holdUntil = Date.now() + 15000; };
+    apply(stable);
+    window.addEventListener('resize', schedule, { passive: true });
+    if (vv) vv.addEventListener('resize', schedule, { passive: true });
+    document.addEventListener('focusin', function () { setTimeout(schedule, 260); }, true);
+    document.addEventListener('focusout', function () { setTimeout(schedule, 260); }, true);
+    document.addEventListener('change', function (e) {
+      if (e.target && e.target.type === 'file') {
+        holdUntil = 0;
+        setTimeout(sync, 120);
+      }
+    }, true);
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) {
+        holdUntil = 0;
+        setTimeout(sync, 120);
+      }
+    });
+    window.addEventListener('pageshow', function () { holdUntil = 0; schedule(); });
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (t && t.tagName === 'INPUT' && t.type === 'file') holdUntil = Date.now() + 15000;
+    }, true);
+    window.addEventListener('focus', function () {
+      setTimeout(function () { holdUntil = 0; sync(); }, 450);
+    });
+    window.addEventListener('orientationchange', function () {
+      setTimeout(function () {
+        stable = window.innerHeight || stable;
+        holdUntil = 0;
+        apply(stable);
+      }, 350);
+    });
+  })();
+</script>
+<title>MinxTok · 明叙</title>
+<meta name="description" content="聊天、日记、学习、游戏，和虾虾在一个安静的小站里慢慢说。">
+<meta property="og:type" content="website">
+<meta property="og:title" content="MinxTok · 明叙">
+<meta property="og:description" content="聊天、日记、学习、游戏，和虾虾在一个安静的小站里慢慢说。">
+<meta property="og:image" content="https://minxtok.pages.dev/assets/og-card.png?v=2">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="MinxTok · 明叙">
+<meta name="twitter:description" content="聊天、日记、学习、游戏，和虾虾在一个安静的小站里慢慢说。">
+<meta name="twitter:image" content="https://minxtok.pages.dev/assets/og-card.png?v=2">
+<link rel="stylesheet" href="/assets/theme.css?v=308">
+<link rel="stylesheet" href="/assets/motion.css?v=42">
+<link rel="stylesheet" href="/assets/onboarding.css?v=13">
+<link rel="stylesheet" href="/assets/archive.css?v=8">
+<link rel="stylesheet" href="/assets/drill.css?v=24">
+<link rel="stylesheet" href="/assets/course.css?v=22">
+<link rel="stylesheet" href="/vendor/katex/katex.min.css?v=3">
+</head>
+<body class="loading">
+  <script>
+    // 兜底：任何脚本错误都不该让人卡在加载页。
+    // 主模块 6 秒内没把 loading 去掉，就自己收场并给一句提示。
+    setTimeout(function () {
+      if (!document.body.classList.contains('loading')) return;
+      document.body.classList.remove('loading');
+      var line = document.createElement('div');
+      line.style.cssText = 'position:fixed;left:0;right:0;bottom:18px;text-align:center;font-size:13px;opacity:.55;color:var(--fg);z-index:99999';
+      line.textContent = '加载有点慢，下拉刷新试试';
+      document.body.appendChild(line);
+    }, 6000);
+  </script>
+
+<!-- 新用户引导：一页一题，文字模糊形变，兴趣气泡物理场 -->
+<section class="ob" id="onboarding" hidden aria-label="MinxTok 新用户引导">
+  <div class="ob-aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+  <header class="ob-top">
+    <button class="ob-back" id="obBack" type="button" aria-label="上一步">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14.5 5.5 8 12l6.5 6.5"></path>
+      </svg>
+    </button>
+    <div class="ob-brand">MinxTok <em>明叙</em></div>
+    <div class="ob-top-actions">
+      <span class="ob-count" id="obCount">01 / 07</span>
+      <button class="ob-lang" id="obLang" type="button">En</button>
+      <button class="ob-skip" id="obSkip" type="button">跳过</button>
+    </div>
+  </header>
+  <div class="ob-progress"><i id="obProgress"></i></div>
+  <main class="ob-stage" id="obStage"></main>
+  <footer class="ob-bottom">
+    <div class="ob-note" id="obNote"></div>
+    <button class="ob-next" id="obNext" type="button">开始</button>
+  </footer>
+</section>
+
+<!-- 登录 / 注册 -->
+<div class="auth" id="auth">
+  <div class="auth-shell">
+    <aside class="auth-hero">
+      <div class="auth-hero-brand">
+        <img src="/assets/brand/lobster.png" alt="" draggable="false">
+        <span>MinxTok</span>
+      </div>
+      <h1>和虾虾，<br>把今天说清楚。</h1>
+      <p>聊天、日记、学习、游戏，都在一个安静的空间里。</p>
+      <div class="auth-points">
+        <div><b>01</b><span>记得你的偏好，也记得你怕什么</span></div>
+        <div><b>02</b><span>日记、情绪、学习记录放在一起</span></div>
+        <div><b>03</b><span>不吵，不催，随时可以回来</span></div>
+      </div>
+    </aside>
+    <div class="auth-card">
+      <button class="auth-lang" id="authLang" type="button">En</button>
+      <div class="auth-heading">
+        <h2 id="authTitle">欢迎回来</h2>
+        <div class="auth-sub" id="authSub">登录后开始对话</div>
+      </div>
+      <div class="auth-seg" id="authSeg">
+        <span class="thumb" id="authThumb"></span>
+        <button data-mode="login" class="on">登录</button>
+        <button data-mode="register">注册</button>
+      </div>
+      <div class="auth-fields">
+        <input class="auth-input" id="authEmail" type="text" inputmode="tel" placeholder="手机号" autocomplete="username">
+        <input class="auth-input" id="authPassword" type="password" placeholder="密码，至少 8 位" autocomplete="current-password">
+        <input class="auth-input" id="authNew" type="password" placeholder="新密码，至少 8 位" style="display:none" autocomplete="new-password">
+        <div class="auth-code" id="authCodeRow" style="display:none">
+          <input class="auth-input" id="authCode" type="text" inputmode="numeric" placeholder="短信验证码" autocomplete="one-time-code">
+          <button class="auth-code-btn" id="authCodeBtn" type="button">获取验证码</button>
+        </div>
+        <div class="auth-meta">
+          <label class="auth-terms" id="authTerms" style="display:none">
+            <input type="checkbox" id="authTermsCheck">
+            <span id="authTermsText">我已阅读并同意<a class="auth-terms-link" href="#" id="authTermsLink">《服务条款与用户协议》</a></span>
+          </label>
+          <button class="auth-link" id="authForgot" type="button">忘记密码</button>
+        </div>
+      </div>
+      <button class="btn auth-submit" id="authSubmit" type="button">进入</button>
+      <div class="auth-or"><span>或</span></div>
+      <button class="auth-passkey" id="waBtn" type="button">使用 Passkey 登录</button>
+      <div class="auth-err" id="authErr"></div>
+      <div class="auth-foot">继续即表示你同意 MinxTok 的使用方式与隐私说明</div>
+    </div>
+  </div>
+</div>
+
+<!-- 启动页：等字体就绪再放内容，避免系统字体闪一下 -->
+<div id="splash">
+  <div class="splash-inner">
+    <svg class="splash-ring" viewBox="0 0 48 48" fill="none">
+      <circle class="ring-bg" cx="24" cy="24" r="20" stroke-width="2"></circle>
+      <circle class="ring-fg" cx="24" cy="24" r="20" stroke-width="2" stroke-linecap="round"></circle>
+    </svg>
+    <div class="splash-text" id="splashText">Connecting</div>
+    <div class="splash-progress"><i></i></div>
+  </div>
+</div>
+
+<div id="app">
+  <!-- 顶栏：左情绪中心 / 中标题 / 右搜索 -->
+  <header class="appbar">
+    <div class="left">
+      <button class="icon-btn" id="btnMenu" aria-label="menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <path d="M4.5 7.5h15M4.5 12h15M4.5 16.5h15"></path>
+        </svg>
+      </button>
+    </div>
+    <div class="title">MinxTok</div>
+    <div class="right">
+      <button class="icon-btn" id="btnMood" aria-label="mood">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <circle cx="12" cy="12" r="8.6"></circle>
+          <path d="M8.6 14.4c.9 1.4 2 2.1 3.4 2.1s2.5-.7 3.4-2.1"></path>
+          <path d="M9.4 9.6v.8M14.6 9.6v.8"></path>
+        </svg>
+      </button>
+      <button class="icon-btn" id="btnSearch" aria-label="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <circle cx="11" cy="11" r="6.2"></circle>
+          <path d="M15.8 15.8l4.4 4.4"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- 消息区 -->
+  <main class="chat" id="chat"></main>
+
+  <!-- 输入区 -->
+  <div class="composer">
+    <div class="quota" id="quota">额度 —</div>
+    <div class="composer-pending" id="composerPending" hidden>
+      <button class="cp-thumb" id="pendingThumb" type="button" aria-label="查看待发送图片">
+        <img alt="">
+      </button>
+      <div class="cp-copy">
+        <div class="cp-title">待发送图片</div>
+        <div class="cp-status" id="pendingStatus">准备中…</div>
+      </div>
+      <button class="cp-del" id="pendingDelete" type="button" aria-label="删除图片">×</button>
+    </div>
+    <div class="bar">
+      <div class="row">
+        <textarea id="input" rows="1" placeholder="和虾虾说点什么"></textarea>
+        <button class="img-btn" id="btnChatImage" aria-label="发送图片" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.6 8.4h3.1l1.2-2.1h6.2l1.2 2.1h3.1a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5h-15a1.5 1.5 0 0 1-1.5-1.5v-8a1.5 1.5 0 0 1 1.5-1.5z"></path>
+            <circle cx="12" cy="13.2" r="3.35"></circle>
+          </svg>
+        </button>
+      </div>
+      <button class="send" id="btnSend" aria-label="send">
+        <svg class="ico-send" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 19V5.5"></path>
+          <path d="M6.8 11.2c1.8-1.7 3.5-3.4 5.2-5.2 1.7 1.8 3.4 3.5 5.2 5.2"></path>
+        </svg>
+        <svg class="ico-stop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="5.5" y="5.5" width="13" height="13" stroke-width="2.2"></rect>
+        </svg>
+      </button>
+    </div>
+  </div>
+  <input id="chatImageInput" type="file" accept="image/*" hidden>
+</div>
+
+<!-- 遮罩 -->
+<div class="scrim" id="scrim"></div>
+
+<!-- 抽屉 -->
+<aside class="drawer" id="drawer">
+  <span class="drawer-ind" id="drawerInd" aria-hidden="true"></span>
+  <div class="brand">MinxTok</div>
+  <button class="item active" data-nav="chat">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5.5H4a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h4v3.2l4-3.2h8a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1z"></path></svg>
+    <span data-i18n="nav.chat">对话</span>
+  </button>
+  <button class="item" data-nav="topup">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="3"></rect><path d="M3 10h18"></path><path d="M7 15h4"></path></svg>
+    <span data-i18n="nav.topup">充值</span>
+  </button>
+  <button class="item" data-nav="diary">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4.5h11a1.5 1.5 0 0 1 1.5 1.5v13a1.5 1.5 0 0 1-1.5 1.5H6z"></path><path d="M6 4.5v16M9.5 8.5h6M9.5 12h6"></path></svg>
+    <span data-i18n="nav.diary">日记</span>
+  </button>
+  <button class="item" data-nav="archive">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4.5h14v15H5z"></path><path d="M8.5 8h7M8.5 12h7M8.5 16h4"></path></svg>
+    <span data-i18n="nav.archive">档案</span>
+  </button>
+  <button class="item" data-nav="study">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h6a3 3 0 0 1 3 3V19a2.5 2.5 0 0 0-2.5-2.5H4z"></path><path d="M20 5.5h-6a3 3 0 0 0-3 3V19a2.5 2.5 0 0 1 2.5-2.5H20z"></path></svg>
+    <span data-i18n="nav.study">学习</span>
+  </button>
+  <button class="item" data-nav="games">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.8" y="7.2" width="18.4" height="9.6" rx="4.8"></rect><path d="M8 10.2v3.6M6.2 12h3.6"></path><circle cx="15.6" cy="10.9" r="1"></circle><circle cx="18" cy="13.2" r="1"></circle></svg>
+    <span data-i18n="nav.games">游戏</span>
+  </button>
+  <button class="item" data-nav="assistant">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"></circle><path d="M5.5 19c.8-3.2 3.3-5 6.5-5s5.7 1.8 6.5 5"></path></svg>
+    <span data-i18n="nav.assistant">助理</span>
+  </button>
+  <button class="item" data-nav="settings">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19.3 12.9a7.6 7.6 0 0 0 0-1.8l2-1.5-2-3.4-2.3 1a7.6 7.6 0 0 0-1.6-1L15 3.8h-3.9l-.3 2.5a7.6 7.6 0 0 0-1.7 1l-2.3-1-2 3.4 2 1.5a7.6 7.6 0 0 0 0 1.8l-2 1.5 2 3.4 2.3-1a7.6 7.6 0 0 0 1.7 1l.3 2.5H15l.3-2.5a7.6 7.6 0 0 0 1.6-1l2.3 1 2-3.4-1.9-1.5z"></path><circle cx="13" cy="12" r="2.6"></circle></svg>
+    <span data-i18n="nav.settings">设置</span>
+  </button>
+  <button class="item" data-nav="about">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.6"></circle><path d="M12 11v5.2"></path><path d="M12 7.9v.6"></path></svg>
+    <span data-i18n="nav.about">关于</span>
+  </button>
+  <div style="flex:1"></div>
+  <div class="item" id="appVersion" style="opacity:.5; font-size:calc(var(--fs-md) * 0.8)">v4.0.0</div>
+</aside>
+
+<!-- 全屏页面（设置/关于） -->
+<section class="page" id="page">
+  <header class="page-head">
+    <button class="icon-btn" id="btnPageClose" aria-label="close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
+        <path d="M6.5 6.5l11 11M17.5 6.5l-11 11"></path>
+      </svg>
+    </button>
+    <div class="page-title" id="pageTitle">设置</div>
+    <button class="icon-btn page-help" id="btnPageHelp" aria-label="页面说明" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+        <circle cx="12" cy="12" r="8.4"></circle>
+        <path d="M12 10.9v5.2"></path>
+        <path d="M12 7.8v.9"></path>
+      </svg>
+    </button>
+  </header>
+  <div class="page-body" id="pageBody"></div>
+</section>
+
+<!-- 弹窗 -->
+<div class="modal-wrap" id="modalWrap">
+  <div class="modal" id="modal">
+    <div class="modal-head">
+      <button class="icon-btn" id="btnModalClose" aria-label="close">✕</button>
+      <div class="h-title" id="modalTitle">标题</div>
+      <div style="width:40px"></div>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<!-- 底部抽屉 -->
+<div class="sheet-wrap" id="sheetWrap">
+  <div class="sheet" id="sheet">
+    <div class="sheet-head"><div class="sheet-title" id="sheetTitle"></div></div>
+    <div class="sheet-body" id="sheetBody"></div>
+  </div>
+</div>
+
+<!-- 重要提示抽屉（充值到账 / 新版本 / 其他大型提示统一用它，Apple 式底部抽屉） -->
+<div class="ns-wrap" id="nsWrap" hidden>
+  <div class="ns-panel" id="nsPanel" role="dialog" aria-modal="true" aria-labelledby="nsTitle">
+    <div class="ns-grab" aria-hidden="true"></div>
+    <div class="ns-head">
+      <div class="ns-titles">
+        <div class="ns-title" id="nsTitle"></div>
+        <div class="ns-sub" id="nsSub"></div>
+      </div>
+    </div>
+    <div class="ns-hero" id="nsHero" hidden></div>
+    <div class="ns-list" id="nsList"></div>
+    <div class="ns-note" id="nsNote" hidden></div>
+    <button class="ns-btn" id="nsBtn" type="button">了解</button>
+    <div class="ns-ver" id="nsVer"></div>
+  </div>
+</div>
+
+<!-- 提示条 -->
+<div class="toasts" id="toasts"></div>
+
+<!-- 暂停遮罩 -->
+<div class="m-veil" id="veil">
+  <div style="text-align:center; color:var(--text-2)">
+    <div style="font-size:34px">🦐</div>
+    <div style="margin-top:10px" id="veilText">服务暂停中</div>
+  </div>
+</div>
+
+<script>
+  // 所有 /api 请求自动带上会话 token，后端据此校验 uid，避免前端 uid 被随意伪造
+  (function () {
+    var raw = window.fetch.bind(window);
+    window.fetch = function (input, init) {
+      var url = typeof input === 'string' ? input : (input && input.url) || '';
+      if (url.indexOf('/api/') !== -1) {
+        var token = '';
+        try { token = localStorage.getItem('minxtok.token') || ''; } catch (_) {}
+        if (token) {
+          init = init || {};
+          var h = new Headers(init.headers || (input instanceof Request ? input.headers : undefined));
+          if (!h.has('Authorization')) h.set('Authorization', 'Bearer ' + token);
+          init.headers = h;
+        }
+      }
+      return raw(input, init);
+    };
+  })();
+</script>
+<script>
+  // 启动看门狗：模块图一旦挂掉（import 缺失、语法错），页面会永远停在启动页且按钮全死。
+  // 15 秒还没进正文才提示，避免大字体/慢网络把脚本模块挤到超时。
+  (function () {
+    window.__minxBooted = false;
+    setTimeout(function () {
+      if (window.__minxBooted) return;
+      document.body.classList.remove('loading', 'auth-pending');
+      var sp = document.getElementById('splash');
+      if (sp) sp.remove();
+      var box = document.createElement('div');
+      box.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;padding:12px 14px;border-radius:14px;background:#2a1414;color:#ffb4b4;font-size:calc(var(--fs-md) * 0.8);line-height:1.6;font-family:-apple-system,sans-serif;box-shadow:0 8px 30px rgba(0,0,0,.4)';
+      box.textContent = '脚本没加载起来：' + (window.__minxBootError || '未知原因') + '（下拉刷新重试）';
+      document.body.appendChild(box);
+    }, 15000);
+    window.addEventListener('error', function (e) {
+      if (e && e.message && !window.__minxBootError) window.__minxBootError = e.message;
+    }, true);
+  })();
+</script>
+<script src="/vendor/katex/katex.min.js?v=4"></script>
+<script type="module" src="/js/app.js?v=415"></script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# 复制成 wrangler.toml（已被 .gitignore 忽略），把三个 id 换成自己的
+name = "minxtok"
+compatibility_date = "2026-10-01"
+pages_build_output_dir = "dist"
+
+[[kv_namespaces]]
+binding = "MINXTOK_KV"
+id = "YOUR_KV_NAMESPACE_ID"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "minxtok-db"
+database_id = "YOUR_D1_DATABASE_ID"
+
+[vars]
+LLM_BASE_URL = "https://api.deepseek.com"
+LLM_MODEL = "deepseek-chat"
+DAILY_QUOTA = "100"
+RATE_PER_MIN = "15"
+GLOBAL_DAILY_CAP = "3000"
+CORS_ORIGIN = "*"
+
+# 密钥请用 `npx wrangler pages secret put LLM_API_KEY` 等方式注入，
+# 不要写在这个文件里。

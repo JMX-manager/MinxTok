@@ -1,0 +1,134 @@
+/* ============================================================
+   MinxTok 动效库 —— 全站动画唯一来源
+   用法：给元素加 .m-* 类，或调用 ui.js 的 animate()
+   禁止在业务代码里再写 @keyframes，需要新动画往这里加
+   ============================================================ */
+
+:root {
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --dur-4: 480ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* 淡入 + 轻微上浮 */
+.m-fade-up { animation: mFadeUp var(--dur-3) var(--ease-out) both; }
+@keyframes mFadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Q 弹出现：菜单项、按钮组、卡片 */
+.m-pop { animation: mPop var(--dur-4) var(--ease-spring) both; }
+@keyframes mPop {
+  0% { opacity: 0; transform: scale(0.86); }
+  60% { opacity: 1; transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* 模糊过渡：切换主题、切换面板 */
+.m-blur-in { animation: mBlurIn var(--dur-4) var(--ease-out) both; }
+@keyframes mBlurIn {
+  from { opacity: 0; filter: blur(10px); transform: scale(1.01); }
+  to { opacity: 1; filter: blur(0); transform: scale(1); }
+}
+
+/* 三条追问依次出生（服务端只给数据，节奏交给 CSS） */
+.m-stagger > * { animation: mFadeUp var(--dur-3) var(--ease-out) both; }
+.m-stagger > *:nth-child(1) { animation-delay: 40ms; }
+.m-stagger > *:nth-child(2) { animation-delay: 120ms; }
+.m-stagger > *:nth-child(3) { animation-delay: 200ms; }
+.m-stagger > *:nth-child(4) { animation-delay: 280ms; }
+
+/* 思考中：三点呼吸 */
+.m-thinking { display: inline-flex; gap: 9px; align-items: center; padding: 6px 0; }
+/* 「AI 概括」一行：随阶段换词，换的时候糊一下再清晰（明轩 2026-10-29） */
+.m-thinking .th-label {
+  font-size: var(--fs-sm); color: var(--text-2); letter-spacing: 0.01em;
+  transition: opacity 0.16s ease, filter 0.16s ease, transform 0.16s ease;
+}
+.m-thinking .th-label:empty { display: none; }
+.m-thinking .th-label.th-out { opacity: 0; filter: blur(5px); transform: translateY(-2px); }
+.m-thinking .th-label.th-in { animation: thLabelIn 0.36s cubic-bezier(0.22, 1, 0.36, 1) both; }
+@keyframes thLabelIn {
+  from { opacity: 0; filter: blur(6px); transform: translateY(3px); }
+  to { opacity: 1; filter: none; transform: none; }
+}
+.m-thinking .th-dots { display: inline-flex; gap: 5px; align-items: center; }
+.m-thinking i {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--muted);
+  animation: mDot 1.2s var(--ease-in-out) infinite;
+}
+.m-thinking i:nth-child(2) { animation-delay: 0.15s; }
+.m-thinking i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes mDot {
+  0%, 100% { opacity: 0.35; transform: translateY(0) scale(0.9); }
+  50% { opacity: 1; transform: translateY(-3px) scale(1.1); }
+}
+
+/* 按钮/卡片按压的 Q 弹（配合 :active 使用） */
+.m-press { transition: transform var(--dur-3) var(--ease-spring), box-shadow var(--dur-3) var(--ease-out); }
+.m-press:active { transform: scale(0.94); }
+
+/* 情绪中心按钮：点按时扩散一圈 */
+.m-ripple { position: relative; overflow: hidden; }
+.m-ripple::after {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.35), transparent 60%);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity var(--dur-2), transform var(--dur-4) var(--ease-out);
+  pointer-events: none;
+}
+.m-ripple:active::after { opacity: 0.6; transform: scale(1.4); transition: none; }
+
+/* 骨架屏 */
+.m-skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--surface-3) 37%, var(--surface-2) 63%);
+  background-size: 400% 100%;
+  animation: mShimmer 1.4s ease infinite;
+  border-radius: var(--r-sm);
+}
+@keyframes mShimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+
+/* 页面级遮罩淡入（AI 异常/暂停时盖住整页） */
+.m-veil {
+  position: fixed; inset: 0;
+  z-index: var(--z-overlay);
+  display: grid; place-items: center;
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--dur-4) var(--ease-out);
+}
+.m-veil.show { opacity: 1; pointer-events: auto; }
+
+/* 加载圈 */
+.m-spinner {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  animation: mSpin 0.8s linear infinite;
+}
+@keyframes mSpin { to { transform: rotate(360deg); } }
+
+/* 尊重系统设置：减弱动效 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

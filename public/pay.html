@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f4f4f6">
+<meta name="robots" content="noindex,nofollow">
+<title>MinxTok 额度充值</title>
+<style>
+  @font-face {
+    font-family: "MinxTok Sans";
+    src: url("/assets/fonts/minxtok-cjk.woff2") format("woff2");
+    font-weight: 400;
+    font-display: swap;
+  }
+
+  :root {
+    --green: #07c160;
+    --green-d: #06ad56;
+    --bg-1: #f7f7f9;
+    --bg-2: #f1f1f4;
+    --card: #ffffff;
+    --text: #141417;
+    --text-2: #4a4a50;
+    --muted: #8a8a90;
+    --faint: #b9b9c0;
+    --line: #f0f0f2;
+    --field: #f4f4f6;
+    --danger: #d94a46;
+    --safe-b: env(safe-area-inset-bottom);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: linear-gradient(180deg, var(--bg-1) 0%, var(--bg-2) 100%);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: "PingFang SC", "MinxTok Sans", -apple-system, BlinkMacSystemFont, "HarmonyOS Sans SC", "Noto Sans CJK SC", "Microsoft YaHei", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    padding: env(safe-area-inset-top) 0 calc(var(--safe-b) + 24px);
+  }
+  input { caret-color: transparent; }
+
+  .wrap { max-width: 430px; margin: 0 auto; padding: 26px 20px 0; }
+  .brand {
+    text-align: center; color: var(--faint);
+    font-size: 11.5px; letter-spacing: .18em; text-transform: uppercase;
+    margin: 6px 0 18px;
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: 20px;
+    border: 1px solid rgba(0, 0, 0, .045);
+    box-shadow: 0 1px 2px rgba(16, 16, 20, .04), 0 14px 36px rgba(16, 16, 20, .06);
+    padding: 26px 22px 24px;
+  }
+
+  .who { text-align: center; color: var(--muted); font-size: 13px; letter-spacing: .01em; }
+  .who b { color: var(--text-2); font-weight: 500; letter-spacing: .04em; }
+
+  .amount-row {
+    display: flex; align-items: baseline; justify-content: center; gap: 7px;
+    margin: 18px 0 4px;
+  }
+  .amount-input {
+    border: 0; outline: 0; background: transparent; padding: 0;
+    width: 3.2em; text-align: center;
+    font-family: inherit; font-size: 54px; font-weight: 500; letter-spacing: -.035em;
+    color: var(--text); font-variant-numeric: tabular-nums;
+  }
+  .amount-input::placeholder { color: #dcdce2; font-weight: 400; }
+  .unit { color: var(--muted); font-size: 14px; letter-spacing: .04em; }
+
+  .divider { height: 1px; background: var(--line); margin: 22px 0 0; }
+
+  .btn {
+    width: 100%; margin-top: 20px; border: 0; border-radius: 12px;
+    background: var(--green); color: #fff;
+    font-family: inherit; font-size: 16px; font-weight: 500; letter-spacing: .04em;
+    padding: 14px 16px; transition: background .15s, opacity .15s, transform .08s;
+  }
+  .btn:active { background: var(--green-d); transform: scale(.994); }
+  .btn[disabled] { opacity: .38; }
+
+  .err { margin-top: 12px; color: var(--danger); font-size: 12.5px; text-align: center; min-height: 17px; letter-spacing: .01em; }
+  .countdown { text-align: center; color: var(--faint); font-size: 11.5px; margin-top: 14px; letter-spacing: .04em; }
+  .foot { text-align: center; color: var(--faint); font-size: 11px; margin-top: 22px; letter-spacing: .06em; }
+
+  .head { text-align: center; }
+  .head h1 { font-size: 16px; font-weight: 500; margin: 0 0 5px; letter-spacing: .02em; }
+  .head p { font-size: 12px; color: var(--muted); margin: 0; letter-spacing: .02em; }
+
+  /* 密钥 8 格 */
+  .slots { display: flex; justify-content: center; gap: 6px; margin: 22px 0 0; position: relative; }
+  .slot {
+    width: 30px; height: 42px; border-radius: 9px; background: var(--field);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 500; color: var(--text-2);
+    letter-spacing: .02em;
+    transition: background .14s, box-shadow .14s, color .14s;
+  }
+  .slot.on { background: #ececf0; color: var(--text); }
+  .slot.cur { background: #e6e6ea; box-shadow: inset 0 0 0 1.5px var(--green); }
+  .ghost {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    opacity: 0; border: 0; outline: 0; background: transparent;
+    box-shadow: none; -webkit-appearance: none; appearance: none;
+    border-radius: 0; font-size: 16px; color: transparent;
+    padding: 0; margin: 0;
+  }
+  .ghost:focus { outline: 0; box-shadow: none; }
+
+  /* 成功 */
+  .done { text-align: center; }
+  .tick {
+    width: 54px; height: 54px; border-radius: 50%; background: var(--green);
+    margin: 2px auto 16px; display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 22px rgba(7, 193, 96, .26);
+  }
+  .tick svg { width: 28px; height: 28px; }
+  .done h1 { font-size: 17px; font-weight: 500; margin: 0 0 6px; letter-spacing: .02em; }
+  .done .sub { color: var(--muted); font-size: 13px; }
+  .rows { margin-top: 22px; }
+  .row { display: flex; justify-content: space-between; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .row span:first-child { color: var(--muted); flex: 0 0 auto; }
+  .row span:last-child { color: var(--text-2); text-align: right; word-break: break-all; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+
+  .skeleton { color: var(--muted); text-align: center; padding: 34px 0; font-size: 13px; letter-spacing: .04em; }
+
+  /* ---- 遮罩 + 底部抽屉 ---- */
+  .veil {
+    position: fixed; inset: 0; z-index: 30;
+    pointer-events: none; overflow: hidden;
+  }
+  .veil::before {
+    content: ""; position: absolute; inset: 0;
+    background: rgba(10, 10, 12, .38);
+    opacity: 0;
+    transition: opacity .34s ease;
+  }
+  .veil.on { pointer-events: auto; }
+  .veil.on::before { opacity: 1; }
+  .veil-glass {
+    position: absolute; left: 0; right: 0; top: 0; height: 100%;
+    -webkit-backdrop-filter: blur(20px) saturate(1.1);
+    backdrop-filter: blur(20px) saturate(1.1);
+    transform: translateY(-100%);
+    transition: transform .5s cubic-bezier(.22, .9, .24, 1);
+    will-change: transform;
+  }
+  .veil.on .veil-glass { transform: translateY(0); }
+
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 31;
+    background: var(--card);
+    border-radius: 24px 24px 0 0;
+    padding: 10px 22px calc(var(--safe-b) + 22px);
+    transform: translateY(102%);
+    transition: transform .3s cubic-bezier(.24, .86, .28, 1);
+    will-change: transform;
+    text-align: center;
+    box-shadow: 0 -12px 40px rgba(10, 10, 12, .16);
+  }
+  .sheet.on { transform: translateY(0); }
+  .grab { width: 34px; height: 4px; border-radius: 99px; background: #e2e2e8; margin: 4px auto 18px; }
+
+  .sheet-label { color: var(--muted); font-size: 12.5px; letter-spacing: .04em; }
+  .sheet-amount { font-size: 42px; font-weight: 500; letter-spacing: -.03em; font-variant-numeric: tabular-nums; margin: 6px 0 0; }
+  .sheet-amount span { font-size: 14px; color: var(--muted); font-weight: 400; margin-left: 6px; letter-spacing: .04em; }
+
+  .sheet .btn { margin-top: 24px; }
+  .link {
+    display: block; width: 100%; margin-top: 10px; border: 0; background: transparent;
+    color: var(--muted); font-size: 14px; font-family: inherit; padding: 10px; letter-spacing: .04em;
+  }
+
+  /* 密码 6 格 */
+  .pins { display: flex; justify-content: center; gap: 9px; margin: 22px 0 0; position: relative; }
+  .pin {
+    width: 42px; height: 50px; border-radius: 11px; background: var(--field);
+    display: flex; align-items: center; justify-content: center;
+    transition: background .14s, box-shadow .14s;
+  }
+  .pin.on { background: #ececf0; }
+  .pin.cur { background: #e6e6ea; box-shadow: inset 0 0 0 1.5px var(--green); }
+  .pin .dot {
+    width: 10px; height: 10px; border-radius: 50%; background: var(--text);
+    transform: scale(0); transition: transform .13s cubic-bezier(.3, 1.4, .5, 1);
+  }
+  .pin.filled .dot { transform: scale(1); }
+  .tip { text-align: center; color: var(--muted); font-size: 12.5px; min-height: 18px; margin-top: 14px; letter-spacing: .02em; }
+  .tip.bad { color: var(--danger); }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-1: #101013; --bg-2: #0b0b0d; --card: #19191c; --text: #f0f0f3; --text-2: #c4c4cb;
+      --muted: #8d8d94; --faint: #5c5c64; --line: #26262b; --field: #232328; --danger: #e56a66;
+    }
+    .card { border-color: rgba(255, 255, 255, .05); box-shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 14px 36px rgba(0, 0, 0, .3); }
+    .slot.on, .pin.on { background: #2c2c33; }
+    .amount-input::placeholder { color: #3a3a42; }
+    .grab { background: #33333a; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">MinxTok</div>
+  <div class="card" id="card">
+    <div class="skeleton">正在读取充值信息</div>
+  </div>
+  <div class="foot" id="foot"></div>
+</div>
+
+<div class="veil" id="veil"><div class="veil-glass"></div></div>
+<div class="sheet" id="sheet" role="dialog" aria-modal="true"></div>
+
+<script>
+(function () {
+  var T = new URLSearchParams(location.search).get('t') || '';
+  var card = document.getElementById('card');
+  var foot = document.getElementById('foot');
+  var veil = document.getElementById('veil');
+  var sheet = document.getElementById('sheet');
+  var info = null;
+  var amount = 0;
+  var cdTimer = null;
+  var keyValue = '';
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function leftText(exp) {
+    var left = Math.max(0, Math.round((exp - Date.now()) / 1000));
+    if (left <= 0) return '充值码已失效';
+    var m = Math.floor(left / 60), s = left % 60;
+    return '有效期剩余 ' + (m > 0 ? m + ' 分 ' + s + ' 秒' : s + ' 秒');
+  }
+
+  function stopCd() { if (cdTimer) { clearInterval(cdTimer); cdTimer = null; } }
+
+  function fatal(title, desc) {
+    stopCd();
+    closeSheet();
+    card.innerHTML = '<div class="done"><h1>' + esc(title) + '</h1><div class="sub">' + esc(desc) + '</div></div>';
+    foot.textContent = '';
+  }
+
+  /* ================= 第一关：密钥 ================= */
+  function renderKey(msg) {
+    card.innerHTML =
+      '<div class="head"><h1>校验充值密钥</h1><p>8 位字符 · 每日 00:00 更新</p></div>' +
+      '<div class="slots" id="slots">' +
+        '<input class="ghost" id="fKey" type="tel" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="8" aria-label="充值密钥">' +
+      '</div>' +
+      '<div class="err" id="err">' + (msg ? esc(msg) : '') + '</div>' +
+      '<button class="btn" id="go" type="button" disabled>下一步</button>';
+
+    var slots = document.getElementById('slots');
+    var cells = [];
+    for (var i = 0; i < 8; i++) {
+      var s = document.createElement('div');
+      s.className = 'slot';
+      slots.appendChild(s);
+      cells.push(s);
+    }
+    slots.addEventListener('pointerdown', function (ev) {
+      ev.preventDefault();
+      fKey.focus();
+    });
+    var fKey = document.getElementById('fKey');
+    var go = document.getElementById('go');
+    var err = document.getElementById('err');
+    var busy = false;
+
+    function paint() {
+      var n = keyValue.length;
+      for (var i = 0; i < 8; i++) {
+        var cell = cells[i];
+        cell.textContent = keyValue.charAt(i) || '';
+        cell.className = 'slot' + (i < n ? ' on' : (i === n && document.activeElement === fKey ? ' cur' : ''));
+      }
+      go.disabled = busy || n !== 8;
+    }
+    fKey.addEventListener('focus', paint);
+    fKey.addEventListener('blur', function () { setTimeout(paint, 0); });
+
+    fKey.addEventListener('input', function () {
+      keyValue = fKey.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
+      if (keyValue !== fKey.value) fKey.value = keyValue;
+      err.textContent = '';
+      paint();
+      if (keyValue.length === 8 && !busy) submit();
+    });
+    go.addEventListener('click', function () { if (keyValue.length === 8) submit(); });
+
+    function submit() {
+      busy = true;
+      go.disabled = true;
+      go.textContent = '验证中';
+      err.textContent = '';
+      fetch('/api/pay/gate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ t: T, key: keyValue })
+      }).then(function (r) {
+        return r.json().then(function (d) { return { status: r.status, d: d }; });
+      }).then(function (res) {
+        var d = res.d || {};
+        if (res.status === 200 && d.ok) { renderAmount(); return; }
+        busy = false;
+        go.textContent = '下一步';
+        if (d.error === 'locked') err.textContent = '尝试次数已达上限，请于 10 分钟后重试';
+        else if (d.error === 'expired') { fatal('充值码已失效', '请提示用户在充值页重新生成充值码'); return; }
+        else if (d.error === 'used') { fatal('该充值码已完成支付', '充值码为一次性凭证，不可重复使用'); return; }
+        else err.textContent = '密钥校验未通过，请核对当日密钥后重试';
+        keyValue = '';
+        fKey.value = '';
+        paint();
+      }).catch(function () {
+        busy = false;
+        go.textContent = '下一步';
+        err.textContent = '网络连接异常，请稍后重试';
+        paint();
+      });
+    }
+
+    paint();
+    // 不自动聚焦，避免页面跳动
+  }
+
+  /* ================= 第二步：金额 ================= */
+  function renderAmount() {
+    card.innerHTML =
+      '<div class="who">充值账户 <b>' + esc(info.phone) + '</b></div>' +
+      '<div class="amount-row">' +
+        '<input class="amount-input" id="fAmount" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="0" autocomplete="off" aria-label="充值额度">' +
+        '<span class="unit">额度</span>' +
+      '</div>' +
+      '<div class="divider"></div>' +
+      '<div class="err" id="err"></div>' +
+      '<button class="btn" id="go" type="button" disabled>支付</button>' +
+      '<div class="countdown" id="cd">' + leftText(info.exp) + '</div>';
+
+    var fAmount = document.getElementById('fAmount');
+    var go = document.getElementById('go');
+    var err = document.getElementById('err');
+
+    fAmount.addEventListener('input', function () {
+      var v = fAmount.value.replace(/[^\d]/g, '').slice(0, 3);
+      if (v !== fAmount.value) fAmount.value = v;
+      var n = Number(v) || 0;
+      if (n > 999) { fAmount.value = '999'; n = 999; }
+      amount = n;
+      go.disabled = !(n >= 1);
+      err.textContent = '';
+    });
+    go.addEventListener('click', function () { if (amount >= 1) openConfirm(); });
+
+    stopCd();
+    cdTimer = setInterval(tick, 1000);
+  }
+
+  function tick() {
+    if (!info) return;
+    if (info.exp <= Date.now()) { fatal('充值码已失效', '请提示用户在充值页重新生成充值码'); return; }
+    var cd = document.getElementById('cd');
+    if (cd) cd.textContent = leftText(info.exp);
+  }
+
+  /* ================= 抽屉 ================= */
+  function openSheet(html) {
+    sheet.innerHTML = html;
+    veil.classList.add('on');
+    sheet.classList.add('on');
+  }
+  function closeSheet() {
+    sheet.classList.remove('on');
+    veil.classList.remove('on');
+  }
+  veil.addEventListener('click', function () {});
+
+  function openConfirm() {
+    openSheet(
+      '<div class="grab"></div>' +
+      '<div class="sheet-label">支付额度</div>' +
+      '<div class="sheet-amount">' + amount + '<span>额度</span></div>' +
+      '<button class="btn" id="sheetPay" type="button">支付</button>' +
+      '<button class="link" id="sheetCancel" type="button">取消</button>'
+    );
+    document.getElementById('sheetCancel').addEventListener('click', closeSheet);
+    document.getElementById('sheetPay').addEventListener('click', openPin);
+  }
+
+  function openPin() {
+    openSheet(
+      '<div class="grab"></div>' +
+      '<div class="sheet-label">' + amount + ' 额度 · 输入支付密码</div>' +
+      '<div class="pins" id="pins">' +
+        '<input class="ghost" id="fPass" type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" aria-label="支付密码">' +
+      '</div>' +
+      '<div class="tip" id="tip"></div>' +
+      '<button class="link" id="sheetBack" type="button">返回</button>'
+    );
+    var pins = document.getElementById('pins');
+    var cells = [];
+    for (var i = 0; i < 6; i++) {
+      var c = document.createElement('div');
+      c.className = 'pin';
+      var dot = document.createElement('i');
+      dot.className = 'dot';
+      c.appendChild(dot);
+      pins.appendChild(c);
+      cells.push(c);
+    }
+    var fPass = document.getElementById('fPass');
+    var tip = document.getElementById('tip');
+    var busy = false;
+
+    function paint() {
+      var n = fPass.value.length;
+      for (var i = 0; i < 6; i++) {
+        cells[i].className = 'pin' + (i < n ? ' filled' : (i === n && document.activeElement === fPass ? ' cur' : ''));
+      }
+    }
+    pins.addEventListener('pointerdown', function (ev) {
+      ev.preventDefault();
+      fPass.focus();
+    });
+    fPass.addEventListener('focus', paint);
+    fPass.addEventListener('blur', function () { setTimeout(paint, 0); });
+    setTimeout(function () { fPass.focus(); paint(); }, 80);
+
+    fPass.addEventListener('input', function () {
+      var v = fPass.value.replace(/[^\d]/g, '').slice(0, 6);
+      if (v !== fPass.value) fPass.value = v;
+      paint();
+      if (v.length === 6 && !busy) doPay(v);
+    });
+    document.getElementById('sheetBack').addEventListener('click', function () { openConfirm(); });
+
+    function bad(msg, keep) {
+      busy = false;
+      tip.textContent = msg;
+      tip.className = 'tip bad';
+      if (!keep) { fPass.value = ''; paint(); }
+    }
+
+    function doPay(pass) {
+      busy = true;
+      tip.textContent = '支付处理中';
+      tip.className = 'tip';
+      fetch('/api/pay/do', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ t: T, amount: amount, pass: pass })
+      }).then(function (r) {
+        return r.json().then(function (d) { return { status: r.status, d: d }; });
+      }).then(function (res) {
+        var d = res.d || {};
+        if (res.status === 200 && d.ok) { success(d); return; }
+        if (d.error === 'bad_password') bad('支付密码不正确，请重新输入');
+        else if (d.error === 'locked') bad('尝试次数已达上限，请于 10 分钟后重试', true);
+        else if (d.error === 'used') { stopCd(); closeSheet(); fatal('该充值码已完成支付', '充值码为一次性凭证，不可重复使用'); }
+        else if (d.error === 'expired') { stopCd(); closeSheet(); fatal('充值码已失效', '请提示用户在充值页重新生成充值码'); }
+        else if (d.error === 'need_key') { closeSheet(); renderKey('请先完成密钥校验'); }
+        else bad('支付未完成，请稍后重试');
+      }).catch(function () { bad('网络连接异常，请稍后重试'); });
+    }
+
+    paint();
+  }
+
+  function success(d) {
+    stopCd();
+    openSheet(
+      '<div class="grab"></div>' +
+      '<div class="done">' +
+        '<div class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.5l4.6 4.6L19.5 6.7"/></svg></div>' +
+        '<h1>支付成功</h1>' +
+        '<div class="sub">' + esc(info.phone) + ' 已到账 ' + esc(d.amount) + ' 额度</div>' +
+        '<div class="rows">' +
+          '<div class="row"><span>支付时间</span><span>' + esc(d.at) + '</span></div>' +
+          '<div class="row"><span>流水号</span><span>' + esc(d.id) + '</span></div>' +
+        '</div>' +
+      '</div>' +
+      '<button class="btn" id="sheetDone" type="button">完成</button>'
+    );
+    document.getElementById('sheetDone').addEventListener('click', function () { closeSheet(); });
+    card.innerHTML =
+      '<div class="done">' +
+        '<h1>已充值 ' + esc(d.amount) + ' 额度</h1>' +
+        '<div class="sub">本次充值已完成，该充值码已作废</div>' +
+      '</div>';
+    foot.textContent = '';
+  }
+
+  /* ================= 启动 ================= */
+  if (!/^[a-f0-9]{32}$/.test(T)) { fatal('充值码无效', '请提示用户重新生成充值码'); return; }
+
+  fetch('/api/pay/quote?t=' + encodeURIComponent(T))
+    .then(function (r) { return r.json().then(function (d) { return { status: r.status, d: d }; }); })
+    .then(function (res) {
+      var d = res.d || {};
+      if (res.status === 200 && d.ok) {
+        info = d;
+        if (d.gate) renderAmount();
+        else renderKey('');
+        return;
+      }
+      if (d.error === 'used') fatal('该充值码已完成支付', '充值码为一次性凭证，请提示用户重新生成');
+      else if (d.error === 'expired') fatal('充值码已失效', '请提示用户在充值页重新生成充值码');
+      else fatal('充值码无效', '请提示用户重新生成充值码');
+    })
+    .catch(function () { fatal('读取失败', '网络不通，刷新重试'); });
+})();
+</script>
+</body>
+</html>

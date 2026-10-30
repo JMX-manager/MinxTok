@@ -1,0 +1,21 @@
+# 依赖与构建产物
+node_modules/
+dist/
+.wrangler/
+*.log
+
+# 密钥：任何形式的本地配置都不许进仓库
+.env
+.env.*
+!.env.example
+.dev.vars
+wrangler.toml
+*.pem
+*.key
+secrets/
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
