@@ -8,7 +8,7 @@ import { renderDraw, splitDraw } from './draw.js?v=48';
 if (typeof setDrawModule === 'function') setDrawModule({ renderDraw, splitDraw });
 import { haptic, isHapticsOn, setHaptics } from './haptics.js?v=12';
 import { openStudy } from './study.js?v=112';
-import { openGames } from './games.js?v=95';
+import { openGames } from './games.js?v=96';
 import { openAssistant, syncAssistantIdentity, assistantName } from './assistant.js?v=25';
 import { openArchive } from './archive.js?v=20';
 import { startOnboarding, maybeStartOnboarding, openOnboardingFromSettings } from './onboarding.js?v=27';
@@ -3475,7 +3475,7 @@ function aboutPage() {
 /* ---------- 更新日志 ---------- */
 const CHANGELOG = [
   {
-    ver: '6.3.0',
+    ver: '6.3.1',
     date: '2026-10-30',
     zh: [
       '情绪中心不再乱跳：只统计你自己说的话，样本少的时候按十二次算，一条困惑不会再顶成百分之百；建议文案也不再每说一句话就重写',

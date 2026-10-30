@@ -460,6 +460,7 @@ function homeHtml() {
   return `
     <div class="pts-bar">
       <div class="pts-sum"><span>总积分</span><b id="ptsTotal">${wallet.total}</b></div>
+      <button class="game-btn" id="ptsRedeem" type="button">兑换额度</button>
     </div>
     <div class="study-grid">${blocks}</div>
     <div class="pts-modal" id="ptsModal" hidden>

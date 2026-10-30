@@ -396,7 +396,7 @@ export async function handleChat(req, env, ctx) {
         if (articleCard) cardList.push(articleCard);
         // 礼物卡固定压在最后：运营推的排在用户兑换的后面，都等这一轮生成完再出
         // 节日活动：当天第一次聊到这儿才建卡，卡片跟这条回复一起出现在最底部
-        // 2026-10-30：节日礼物卡不再自动发（额度只由管理员发放，避免变成自动补额度）
+        if (!giftCard) { try { await ensureHolidayGift(env, uid); } catch (_) {} }
         if (!giftCard) { try { giftCard = await pendingGiftFor(env, uid); } catch (_) {} }
         if (giftCard) cardList.push(giftCard);
         const blocks = buildMessageBlocks({ text: music.text, cards: cardList });

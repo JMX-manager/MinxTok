@@ -8,7 +8,7 @@ const QUOTA_CAP = 5000;
 //   ① 不再每天自动补额度。余额只减不增，用完就停，等管理员手动发放。
 //   ② 余额 = 兑换池(stock) + 限时包(grants)。这两个池子对用户就是同一个余额，扣的时候先扣快到期的。
 //   ③ 只有三种情况会让余额增加：注册礼（20）、管理员发放/充值到账、兑换码。
-//   ④ 学习中心（对话/刷题/老师）和游戏都要扣，且任何玩法都不能把额度赚回来。
+//   ④ 学习中心（对话/刷题/老师）和游戏都要扣；积分兑换额度、礼物卡照旧可用。
 export const SIGNUP_QUOTA = 20;
 
 export async function quotaState(env, uid) {
@@ -140,11 +140,25 @@ export async function handleGameSpend(req, env) {
   return json({ ok: true, spent: amount, quota: res.quota }, 200, cors);
 }
 
-// 游戏积分兑换额度：2026-10-30 起关闭。额度只能由管理员发放或充值到账，
-// 任何玩法都不许把额度赚回来（否则就成了刷额度入口）。
+// 游戏积分兑换额度：每天最多 +20，服务端限次，防止客户端刷
 export async function handleGameReward(req, env) {
   const cors = corsHeaders(env);
-  return json({ error: 'reward_disabled', message: '积分兑换额度已关闭' }, 410, cors);
+  let body = {};
+  try { body = await req.json(); } catch { return json({ error: 'invalid_json' }, 400, cors); }
+  const uid = body.uid;
+  const n = Math.floor(Number(body.quota));
+  if (!uidOk(uid)) return json({ error: 'invalid_uid' }, 400, cors);
+  if (!Number.isInteger(n) || n < 1 || n > 20) return json({ error: 'invalid_amount' }, 400, cors);
+  const day = dayKey();
+  const key = `gameReward:${uid}:${day}`;
+  const used = Number((await env.MINXTOK_KV.get(key)) || '0');
+  // 每天最多兑换 20 次额度（按次数和点数同一天封顶）
+  if (used + n > 20) return json({ error: 'daily_cap', used, cap: 20 }, 429, cors);
+  // 换来的额度进永久兑换池（stock），不抬高每日上限，也不按天作废
+  await addStock(env, uid, n);
+  await env.MINXTOK_KV.put(key, String(used + n));
+  const st = await quotaState(env, uid);
+  return json({ ok: true, granted: n, remaining: 20 - used - n, poolLeft: st.poolLeft, quota: st }, 200, cors);
 }
 
 // 申请额度
