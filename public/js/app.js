@@ -2,8 +2,8 @@
 import { initTheme, setMode, getMode } from './theme.js?v=104';
 import { applyI18n, toggleLang, t, getLang, setTrText, trText } from './i18n.js?v=118';
 import { initUi, openDrawer, closeDrawer, openModal, closeModal, openPage, pageLoading, fillPage, setPageTitle, closePage, openSheet, closeSheet, toast, setVeil, helpHtml, openNotice, bindNotice } from './ui.js?v=151';
-import { renderMessage, renderBlock, buildWho, thinking, setThinkingLabel, skeletonCard, setQuoteHandler, setDeleteHandler, playFollowIn, appleEmojiHtml, renderMarkdown, markGiftClaimed } from './blocks.js?v=173';
-import { setDrawModule } from './blocks.js?v=173';
+import { renderMessage, renderBlock, buildWho, thinking, setThinkingLabel, skeletonCard, setQuoteHandler, setDeleteHandler, playFollowIn, appleEmojiHtml, renderMarkdown, markGiftClaimed } from './blocks.js?v=174';
+import { setDrawModule } from './blocks.js?v=174';
 import { renderDraw, splitDraw } from './draw.js?v=48';
 if (typeof setDrawModule === 'function') setDrawModule({ renderDraw, splitDraw });
 import { haptic, isHapticsOn, setHaptics } from './haptics.js?v=12';
@@ -3562,7 +3562,7 @@ function aboutPage() {
 /* ---------- 更新日志 ---------- */
 const CHANGELOG = [
   {
-    ver: '6.3.6',
+    ver: '6.3.7',
     date: '2026-10-30',
     zh: [
       '情绪中心不再乱跳：只统计你自己说的话，样本少的时候按十二次算，一条困惑不会再顶成百分之百；建议文案也不再每说一句话就重写',

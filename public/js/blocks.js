@@ -458,11 +458,22 @@ export function renderMarkdown(src) {
   const out = [];
   let list = null;
 
-  const inline = (t) => esc(t)
+  // 占位符要反复还原：被按住的 HTML 里可能又套了一层占位符（公式里套括号、括号里套上标就会出现），
+  // 只还原一遍的话内层就漏成字面的「MATH20」（明轩 2026-10-30 报的衬线 20 就是这个）。
+  const restoreHeld = (t0) => {
+    let t = String(t0);
+    for (let i = 0; i < 8 && t.indexOf('\u0000') >= 0; i++) {
+      const next = t.replace(/\u0000MATH(\d+)\u0000/g, (m, k) => held[Number(k)] || '');
+      if (next === t) break;
+      t = next;
+    }
+    return t.replace(/\u0000MATH\d+\u0000/g, '');
+  };
+  const inline = (t) => restoreHeld(esc(t)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>')
-    .replace(/\u0000MATH(\d+)\u0000/g, (m, i) => held[Number(i)] || '');
+    .replace(/\u0000MATH(\d+)\u0000/g, (m, i) => held[Number(i)] || ''));
 
   for (const raw of lines) {
     const line = raw.replace(/\s+$/, '');
@@ -474,7 +485,7 @@ export function renderMarkdown(src) {
 
     if (heldOnly) {
       if (list) { out.push(`</${list}>`); list = null; }
-      out.push(held[Number(heldOnly[1])] || '');
+      out.push(restoreHeld(held[Number(heldOnly[1])] || ''));
     } else if (hr) {
       if (list) { out.push(`</${list}>`); list = null; }
       out.push('<hr class="md-hr">');

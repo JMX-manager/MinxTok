@@ -6,7 +6,7 @@ import { haptic } from './haptics.js';
 import { STAGES, subjectsOf, booksOf, unitsOf } from './curriculum.js?v=12';
 import { renderDraw, splitDraw } from './draw.js?v=48';
 import { creditsAdd } from './credits.js?v=16';
-import { renderMarkdown } from './blocks.js?v=173';
+import { renderMarkdown } from './blocks.js?v=174';
 
 const SEL_KEY = 'minxtok.course.sel';
 const T_KEY = 'minxtok.course.teacher';
