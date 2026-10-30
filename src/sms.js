@@ -139,6 +139,15 @@ export async function handleSmsSend(req, env) {
   const phone = normalizePhone(body.phone);
   if (!phoneOk(phone)) return reply({ ok: false, msg: '手机号格式不正确' }, 400);
 
+  // 单 IP 每小时最多 5 条：防有人拿一台机器轮着手机号刷短信账单
+  const ip = req.headers.get('CF-Connecting-IP') || 'unknown';
+  const ipKey = `sms:ip:${ip}`;
+  const ipCount = Number((await env.MINXTOK_KV.get(ipKey)) || '0');
+  if (ipCount >= 5) {
+    console.log('[sms] send blocked ip-hourly', ipCount);
+    return reply({ ok: false, msg: '请求频繁，请稍后再试' });
+  }
+
   const cdKey = `sms:cd:${phone}`;
   if (await env.MINXTOK_KV.get(cdKey)) {
     console.log('[sms] send', maskPhone(phone), 'blocked cooldown');
@@ -146,6 +155,7 @@ export async function handleSmsSend(req, env) {
   }
   // 先落冷却再调用，防连点/并发重复扣费
   await env.MINXTOK_KV.put(cdKey, String(Date.now()), { expirationTtl: 60 });
+  try { await env.MINXTOK_KV.put(ipKey, String(ipCount + 1), { expirationTtl: 3600 }); } catch (_) {}
 
   const result = await sendSmsCode(env, phone);
   return reply(result);

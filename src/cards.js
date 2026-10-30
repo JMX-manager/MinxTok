@@ -1,6 +1,6 @@
 // 卡片能力：新闻、天气、额度、文章、自定义
 // 所有外部数据都在服务端取，前端只拿结构化结果，密钥不出 Worker
-import { corsHeaders, json, isAdmin, uidOk } from './util.js';
+import { corsHeaders, json, isAdmin, uidOk, adminGate } from './util.js';
 import { ensureConversation, insertMessage, newId } from './store.js';
 import { buildMessageBlocks } from './blocks.js';
 
@@ -178,7 +178,7 @@ export async function handleArticleRewrite(req, env) {
 /* ============================ 卡片注入（调试/后台用） ============================ */
 export async function handleAdminCard(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   let body = {};
   try { body = await req.json(); } catch { return json({ error: 'invalid_json' }, 400, cors); }
   const { uid, card, text } = body || {};

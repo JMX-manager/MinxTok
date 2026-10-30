@@ -1,6 +1,6 @@
 // 额度礼物卡：统一调配的运营推送 + 口令兑换，两者格式完全一致
 // 流程：服务端建卡存 D1（pending）→ 推给用户 → 用户点开看到礼物界面 → 点领取才真正加额度
-import { corsHeaders, json, uidOk, isAdmin } from './util.js';
+import { corsHeaders, json, uidOk, isAdmin, adminGate } from './util.js';
 import { quotaState } from './quota.js';
 import { newId } from './store.js';
 
@@ -123,7 +123,7 @@ export async function handleGiftClaim(req, env) {
 // 管理端：给全站或指定用户推一张礼物卡
 export async function handleGiftPush(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   let body = {};
   try { body = await req.json(); } catch { return json({ error: 'invalid_json' }, 400, cors); }
   const { uid = null, title, subtitle = '', amount = 100, unit = '额度', emoji = '🎁', surprise = '', note = '' } = body || {};
@@ -227,7 +227,7 @@ export async function handleGiftCode(req, env) {
 // 管理端：注册一个口令
 export async function handleGiftCodeCreate(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   let body = {};
   try { body = await req.json(); } catch { return json({ error: 'invalid_json' }, 400, cors); }
   const { code, title, subtitle = '', amount = 50, unit = '额度', emoji = '🎁', surprise = '', expiresAt = 0 } = body || {};

@@ -1,5 +1,5 @@
 // 问题反馈：前端提交，管理端可查
-import { corsHeaders, json, isAdmin } from './util.js';
+import { corsHeaders, json, isAdmin, adminGate } from './util.js';
 
 function rid() {
   return 'fb_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
@@ -42,7 +42,7 @@ export async function handleFeedbackCreate(req, env) {
 
 export async function handleFeedbackList(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   const res = await env.DB.prepare(
     'SELECT id,uid,account,type,text,contact,ua,page,created_at FROM feedback ORDER BY created_at DESC LIMIT 200'
   ).all();

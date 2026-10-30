@@ -1,5 +1,5 @@
 // 管理接口：状态查询、暂停/恢复、运行时配置、统计、测试注入
-import { corsHeaders, json, isAdmin, isPaused, getRuntimeConfig, dayKey } from './util.js';
+import { corsHeaders, json, isAdmin, isPaused, getRuntimeConfig, dayKey, adminGate } from './util.js';
 import { quotaState } from './quota.js';
 import { buildMessageBlocks } from './blocks.js';
 import { insertMessage, ensureConversation } from './store.js';
@@ -35,7 +35,7 @@ export async function handleStatus(req, env) {
 // 管理端：读全部状态
 export async function handleAdminState(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   const paused = await isPaused(env);
   const cfg = await getRuntimeConfig(env);
   return json({ paused: paused || { paused: false }, config: cfg, model: env.LLM_MODEL || 'deepseek-chat' }, 200, cors);
@@ -44,7 +44,7 @@ export async function handleAdminState(req, env) {
 // 管理端：暂停（可带时长，到期自动恢复）
 export async function handleAdminPause(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   let body = {};
   try { body = await req.json(); } catch (_) { /* 允许空体 */ }
   const state = {
@@ -60,7 +60,7 @@ export async function handleAdminPause(req, env) {
 // 管理端：恢复
 export async function handleAdminResume(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   await env.MINXTOK_KV.put('state:paused', JSON.stringify({ paused: false, at: Date.now() }));
   return json({ ok: true, paused: false }, 200, cors);
 }
@@ -68,7 +68,7 @@ export async function handleAdminResume(req, env) {
 // 管理端：改额度/频控（不传则不改）
 export async function handleAdminConfig(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   let body = {};
   try { body = await req.json(); } catch (_) { return json({ error: 'invalid_json' }, 400, cors); }
   const cur = await getRuntimeConfig(env);
@@ -84,7 +84,7 @@ export async function handleAdminConfig(req, env) {
 // 卡片和追问同时存在也只会各保留一个，顺序由服务端裁定
 export async function handleAdminTestMessage(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   let body = {};
   try { body = await req.json(); } catch (_) { return json({ error: 'invalid_json' }, 400, cors); }
   const { uid, text, card, followups, conversationId } = body || {};
@@ -101,7 +101,7 @@ export async function handleAdminTestMessage(req, env) {
 
 export async function handleAdminStats(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   const day = dayKey();
   const [msgs, convs, usageSum, recentEvents] = await Promise.all([
     env.DB.prepare('SELECT COUNT(*) AS c FROM messages WHERE created_at >= ?').bind(Date.now() - 86400000).first(),

@@ -1,5 +1,5 @@
 // 额度：基础额度 + 永久加成 + 限时赠送 + 申请与兑换码
-import { corsHeaders, json, uidOk, getRuntimeConfig, isAdmin, dayKey } from './util.js';
+import { corsHeaders, json, uidOk, getRuntimeConfig, isAdmin, dayKey, adminGate } from './util.js';
 import { getUsage, addUsage } from './store.js';
 
 const QUOTA_CAP = 5000;
@@ -179,7 +179,7 @@ export async function handleApply(req, env) {
 // 管理端：看待处理与历史
 export async function handleRequests(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   const res = await env.DB.prepare('SELECT id,uid,amount,reason,status,created_at FROM quota_requests ORDER BY created_at DESC LIMIT 50').all();
   return json({ requests: res.results || [] }, 200, cors);
 }
@@ -187,7 +187,7 @@ export async function handleRequests(req, env) {
 // 管理端：批准/拒绝
 export async function handleDecide(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   let body = {};
   try { body = await req.json(); } catch { return json({ error: 'invalid_json' }, 400, cors); }
   const { id, approve, ttlSec } = body;
@@ -239,7 +239,7 @@ export async function handleRedeem(req, env) {
 // 管理端：生成兑换码
 export async function handleCreateCode(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   let body = {};
   try { body = await req.json(); } catch { return json({ error: 'invalid_json' }, 400, cors); }
   const { value = 100, ttlSec = 0, maxUses = 1, count = 1 } = body || {};

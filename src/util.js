@@ -57,6 +57,19 @@ export function isAdmin(req, env) {
   return diff === 0;
 }
 
+// 管理端闸门：先验 token，失败按 IP 计数。同一 IP 十分钟错 10 次就锁，防暴力猜 ADMIN_TOKEN。
+export async function adminGate(req, env) {
+  if (isAdmin(req, env)) return true;
+  const ip = req.headers.get('CF-Connecting-IP') || (req.headers.get('CF-Connecting-IPv6') || 'unknown');
+  const key = `adm:f:${ip}`;
+  try {
+    const n = Number((await env.MINXTOK_KV.get(key)) || '0');
+    if (n >= 10) return false;
+    await env.MINXTOK_KV.put(key, String(n + 1), { expirationTtl: 600 });
+  } catch (_) {}
+  return false;
+}
+
 // 每日额度上限：只算站点配置的固定日额（2026-10-28 起不再叠加任何兑换加成）。
 // 兑换/赠送额度是独立总量池（stock + grants），扣费时先扣池子，池子空了才动每日额度。
 export async function getLimit(env, uid) {

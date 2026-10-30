@@ -2,7 +2,7 @@
 // 流程：用户在充值页点「生成充值码」→ 拿到二维码/条形码（30 分钟有效，每人不同）
 //       → 截图发给管理员 → 管理员扫码进 /pay.html → 输入当日充值密钥 + 金额 + 支付密码
 //       → 到账进兑换池（stock），同时写 payments 流水，用户 App 长轮询实时弹窗。
-import { json, corsHeaders, uidOk, dayKey, isAdmin } from './util.js';
+import { json, corsHeaders, uidOk, dayKey, isAdmin, adminGate } from './util.js';
 import { quotaState, addStock } from './quota.js';
 
 const TOKEN_TTL = 30 * 60 * 1000;   // 充值码有效期 30 分钟
@@ -265,7 +265,7 @@ export async function handlePayWatch(req, env) {
 /* ---------- ⑤ 管理端：查当天密钥（ADMIN_TOKEN） ---------- */
 export async function handleAdminPayKey(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   const key = await payKeyOfDay(env, dayKey());
   const stats = await env.DB.prepare(
     "SELECT COUNT(*) AS n, COALESCE(SUM(amount),0) AS sum FROM payments WHERE key_day=?"

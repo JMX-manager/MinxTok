@@ -1,7 +1,7 @@
 # MinxTok 运维速查（一页）
 
-> 对应线上：**6.2.0（最新稳定版）** ｜ 正式站 https://minxtok.pages.dev
-> 关键缓存版本：app `v415` / theme `v308` / blocks `v172` / dict `v31`（`blocks.js` 被 5 处 import，改一次要全改）
+> 对应线上：**6.1.9（最新稳定版）** ｜ 正式站 https://minxtok.pages.dev ｜ 项目 `minxtok`
+> 关键缓存版本：app `v409` / theme `v308` / blocks `v172` / dict `v30`（`blocks.js` 被 5 处 import，改一次要全改）
 > 历史版本看 `HISTORY.md`，索引看 `README.md`，路线看 `ROADMAP.md`。
 
 ## 1. 改完代码的标准流程
@@ -11,6 +11,7 @@ cd minxtok
 cp public/js/app.js /tmp/check.mjs && node --check /tmp/check.mjs   # ★ ESM 解析自检，必做
 node scripts/build-pages.mjs                                        # public/ → dist/_worker.js
 node --check dist/_worker.js
+set -a; . $HOME/secrets/cloudflare.env; set +a
 npx wrangler pages deploy dist --project-name minxtok --branch main --commit-dirty=true
 ```
 
@@ -44,9 +45,9 @@ for f in public/js/*.js; do cp "$f" /tmp/c.mjs && node --check /tmp/c.mjs || ech
 
 - KV：`minxtok-kv`，namespace `YOUR_KV_NAMESPACE_ID`（wrangler 需 `--namespace-id=` + `--remote`）；绑定名 `MINXTOK_KV`。
 - D1：`minxtok-db`，绑定名 `DB`。
-- 密钥一律走环境变量或 `wrangler pages secret put`，**不要写进仓库**：`LLM_API_KEY`、`ADMIN_TOKEN`、`PAY_KEY_SECRET`、`ALIYUN_AK_ID`、`ALIYUN_AK_SECRET`。
-- Pay key：`PAY_KEY_SECRET=... node scripts/pay-key.mjs`（只在本机跑，密钥不进仓库）。
-- 前端不写任何 key/密码；所有密钥只存在 Pages secret 里，前端与仓库都拿不到。
+- 密钥文件（600，不进工作区）：`$HOME/secrets/cloudflare.env`、`$HOME/secrets/minxtok-pay.env`。
+- Pay key：`set -a; . $HOME/secrets/minxtok-pay.env; set +a; node scripts/pay-key.mjs`。
+- 前端不写任何 key/密码；`PAY_KEY_SECRET` 只存在 Pages secret 与本机 secrets。
 
 ## 5. 关键 KV 键
 

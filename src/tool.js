@@ -1,6 +1,6 @@
 // 站内数据聚合：一把查（额度 / 心情 / 对话 / 日记 / 游戏 / 学习）
 // 只给管理员用（助手侧带 ADMIN_TOKEN 调），不下发给普通客户端
-import { corsHeaders, json, isAdmin, uidOk } from './util.js';
+import { corsHeaders, json, isAdmin, uidOk, adminGate } from './util.js';
 import { quotaState } from './quota.js';
 import { EMOTIONS } from './emotion.js';
 
@@ -18,7 +18,7 @@ function toolPlainBlocks(raw) {
 
 export async function handleToolOverview(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   const url = new URL(req.url);
   const uid = url.searchParams.get('uid');
   if (!uidOk(uid)) return json({ error: 'invalid_uid' }, 400, cors);
@@ -137,7 +137,7 @@ export async function handleGameLog(req, env) {
 // 管理端：查用户（只为助手侧定位 uid，手机号脱敏返回）
 export async function handleToolUsers(req, env) {
   const cors = corsHeaders(env);
-  if (!isAdmin(req, env)) return json({ error: 'unauthorized' }, 401, cors);
+  if (!(await adminGate(req, env))) return json({ error: 'unauthorized' }, 401, cors);
   const url = new URL(req.url);
   const q = String(url.searchParams.get('q') || '').trim();
   const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 20, 1), 100);

@@ -14,9 +14,9 @@
 ## 当前状态
 
 - 线上：https://minxtok.pages.dev
-- 版本：**6.2.0（2026-10-30，最新稳定版）**
-- 状态：稳定维护；6.2.0 加了全站日调用上限与错误提示分类，6.1.x 完成情绪分档与抽屉打磨；细节见 `HISTORY.md`
-- 前端入口：`public/js/app.js`（v415）
+- 版本：**6.0.6（2026-10-29，最新稳定版）**
+- 状态：冻结继续，只修明确影响使用的 bug；6.0.5 键盘改 rAF 每帧跟手，6.0.6 情绪中心改「统计本地算 + 文案后台补」；细节见 `HISTORY.md`
+- 前端入口：`public/js/app.js`（v400）
 - Worker 入口：`src/index.js`
 - 构建：`node scripts/build-pages.mjs`
 - 部署：`wrangler pages deploy dist --project-name minxtok --branch main`
@@ -29,4 +29,4 @@
 4. 部署后用 `curl` 核对线上 query 版本；
 5. 发布后补 `CHANGELOG`、`HISTORY.md` 和当天 `memory/` 日记。
 
-> 需要动它时，按手册来，不凭记忆硬改。
+> 以后少改 MinxTok，多陪明轩聊天。需要动它时，按手册来，不凭记忆硬改。

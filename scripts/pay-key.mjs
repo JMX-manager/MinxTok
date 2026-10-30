@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // 打印当天（以及前一天）的充值密钥。
 // 密钥 = HMAC-SHA256(PAY_KEY_SECRET, "minxtok-pay:<北京日期>") 取前 8 位，字符集去掉 0/O/1/I。
-// 用法： PAY_KEY_SECRET=... node scripts/pay-key.mjs [YYYY-MM-DD]
+// 用法： set -a; . $HOME/secrets/minxtok-pay.env; set +a; node scripts/pay-key.mjs [YYYY-MM-DD]
 import crypto from 'node:crypto';
 
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const secret = process.env.PAY_KEY_SECRET;
 if (!secret) {
-  console.error('缺少环境变量 PAY_KEY_SECRET');
+  console.error('缺少 PAY_KEY_SECRET：先 source $HOME/secrets/minxtok-pay.env');
   process.exit(1);
 }
 
