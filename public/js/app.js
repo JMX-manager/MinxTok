@@ -1376,7 +1376,7 @@ function fmtExp(ts) {
 
 function topupHtml(q) {
   const grants = (q.grants || []).map(g =>
-    `<div class="grant-row"><span>${g.amount}${g.left != null && g.left !== g.amount ? ` · 剩 ${g.left}` : ''}</span></div>`).join('');
+    `<div class="grant-row"><span>${g.amount}</span></div>`).join('');
   const total = q.left != null ? q.left : ((q.dailyLeft != null ? q.dailyLeft : 0) + (q.poolLeft || 0));
   const dailyLeft = q.dailyLeft != null ? q.dailyLeft : (q.limit || 0);
   const stock = q.stock || 0;
@@ -1384,8 +1384,10 @@ function topupHtml(q) {
   return `
     <div class="topup-balance">
       <div class="tb-num" id="tbNum">${total}</div>
-      <div class="tb-label" id="tbLabel">${t('quota', { n: total })}</div>
+      <div class="tb-label" id="tbLabel">可用额度 · 用完请联系管理员发放</div>
+      ${pool ? `<div class="tb-label" style="margin-top:2px">其中限时额度 ${q.grantSum || 0}</div>` : ''}
     </div>
+    ${stock ? `<div class="panel" style="padding:10px 14px;margin-bottom:16px"><div class="group-title" style="margin:0">充值余额 · 剩 ${stock}</div></div>` : ''}
     ${grants ? `<div class="panel" style="padding:10px 14px;margin-bottom:16px"><div class="group-title" style="margin:0 0 8px">限时额度 · 共 ${q.grantSum != null ? q.grantSum : (q.poolLeft || 0)}</div>${grants}</div>` : ''}
 
     <div class="group">
@@ -3609,7 +3611,7 @@ function aboutPage() {
 /* ---------- 更新日志 ---------- */
 const CHANGELOG = [
   {
-    ver: '6.3.9',
+    ver: '6.3.10',
     date: '2026-10-30',
     zh: [
       '情绪中心不再乱跳：只统计你自己说的话，样本少的时候按十二次算，一条困惑不会再顶成百分之百；建议文案也不再每说一句话就重写',
