@@ -105,14 +105,14 @@ export async function handleChat(req, env, ctx) {
   }
   ctx.waitUntil(env.MINXTOK_KV.put(rlKey, String(rl + 1), { expirationTtl: 120 }));
 
-  // 3) 每日额度
+  // 3) 余额：没有余额就直接挡回去，别浪费一次模型调用
   const qs = await quotaState(env, uid);
   if (qs.left <= 0) {
     return json({ error: 'quota_exceeded', used: qs.used, limit: qs.limit, left: qs.left }, 429, cors);
   }
 
   // 4) 扣额度：发送即扣（中途停止也算用掉一次），追问走同一个接口同样计次
-  //    先扣当天，当天用完再扣限时总量包
+  //    余额制：只扣余额，不再有每日自动补充
   let chargedUsed = null;
   try { chargedUsed = (await consumeQuota(env, uid)).used; } catch (_) { chargedUsed = null; }
 
@@ -396,12 +396,12 @@ export async function handleChat(req, env, ctx) {
         if (articleCard) cardList.push(articleCard);
         // 礼物卡固定压在最后：运营推的排在用户兑换的后面，都等这一轮生成完再出
         // 节日活动：当天第一次聊到这儿才建卡，卡片跟这条回复一起出现在最底部
-        if (!giftCard) { try { await ensureHolidayGift(env, uid); } catch (_) {} }
+        // 2026-10-30：节日礼物卡不再自动发（额度只由管理员发放，避免变成自动补额度）
         if (!giftCard) { try { giftCard = await pendingGiftFor(env, uid); } catch (_) {} }
         if (giftCard) cardList.push(giftCard);
         const blocks = buildMessageBlocks({ text: music.text, cards: cardList });
         const saved = await insertMessage(env, { uid, convId, role: 'assistant', blocks });
-        const total = chargedUsed == null ? (await consumeQuota(env, uid)).used : chargedUsed;
+        const total = chargedUsed == null ? (await getUsage(env, uid)) : chargedUsed;
 
         // 追问必须等正文出来后再生成：这样每一条都能咬住虾虾刚说的内容，
         // 不再提前猜、也不会出现“跟这条不搭”的问题。

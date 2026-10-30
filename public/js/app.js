@@ -8,7 +8,7 @@ import { renderDraw, splitDraw } from './draw.js?v=48';
 if (typeof setDrawModule === 'function') setDrawModule({ renderDraw, splitDraw });
 import { haptic, isHapticsOn, setHaptics } from './haptics.js?v=12';
 import { openStudy } from './study.js?v=112';
-import { openGames } from './games.js?v=94';
+import { openGames } from './games.js?v=95';
 import { openAssistant, syncAssistantIdentity, assistantName } from './assistant.js?v=25';
 import { openArchive } from './archive.js?v=20';
 import { startOnboarding, maybeStartOnboarding, openOnboardingFromSettings } from './onboarding.js?v=27';
@@ -914,7 +914,7 @@ async function sendMessage(text, extra = {}) {
           try { info = JSON.parse(xhr.responseText) || {}; } catch (_) { /* 忽略 */ }
           const zh = getLang() === 'zh';
           const msg = info.error === 'quota_exceeded'
-            ? (zh ? '今天的额度用完了，明天会自动恢复，也可以去充值或兑换。' : 'Daily quota is used up. It resets tomorrow, or top up in Credits.')
+            ? (zh ? '额度用完了，联系管理员发放后才能继续。' : 'Out of credits. Ask the admin to top you up.')
             : info.error === 'daily_cap'
               ? (zh ? '今天全站可用的对话次数已经用完了，明天再来找我吧。' : 'The site-wide daily limit is used up. Come back tomorrow.')
               : (zh ? '说得有点太快了，缓一分钟再试。' : 'A bit too fast. Try again in a minute.');
@@ -1194,7 +1194,7 @@ async function pollStatus() {
         openNotice({
           title: trText('额度快用完了'),
           sub: trText(`现在还能用的只剩 ${d.quota.left} 额度了。`),
-          note: trText('可以去「充值」里充值或兑换，也可以等明天每日额度自动恢复。'),
+          note: trText('额度不再每天自动补充，用完了找管理员发放。'),
           button: trText('了解'),
           ver: 'v' + appVersion(),
         });
@@ -1248,10 +1248,10 @@ function topupHtml(q) {
   return `
     <div class="topup-balance">
       <div class="tb-num" id="tbNum">${total}</div>
-      <div class="tb-label" id="tbLabel">可用额度 · 每日 ${dailyLeft}/${q.dailyLimit != null ? q.dailyLimit : q.limit}</div>
-      ${pool ? `<div class="tb-label" style="margin-top:2px">兑换额度 ${pool} · 优先扣减，长期有效</div>` : ''}
+      <div class="tb-label" id="tbLabel">可用额度 · 用完请联系管理员发放</div>
+      ${pool ? `<div class="tb-label" style="margin-top:2px">其中限时额度 ${q.grantSum || 0} · 到期自动失效</div>` : ''}
     </div>
-    ${stock ? `<div class="panel" style="padding:10px 14px;margin-bottom:16px"><div class="group-title" style="margin:0">兑换额度 · 剩 ${stock}</div></div>` : ''}
+    ${stock ? `<div class="panel" style="padding:10px 14px;margin-bottom:16px"><div class="group-title" style="margin:0">充值余额 · 剩 ${stock}</div></div>` : ''}
     ${grants ? `<div class="panel" style="padding:10px 14px;margin-bottom:16px"><div class="group-title" style="margin:0 0 8px">限时额度 · 共 ${q.grantSum != null ? q.grantSum : (q.poolLeft || 0)}</div>${grants}</div>` : ''}
 
     <div class="group">
@@ -3475,7 +3475,7 @@ function aboutPage() {
 /* ---------- 更新日志 ---------- */
 const CHANGELOG = [
   {
-    ver: '6.2.1',
+    ver: '6.3.0',
     date: '2026-10-30',
     zh: [
       '情绪中心不再乱跳：只统计你自己说的话，样本少的时候按十二次算，一条困惑不会再顶成百分之百；建议文案也不再每说一句话就重写',

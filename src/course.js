@@ -2,6 +2,7 @@
 // 和刷题不同，这里不缓存、不建题库，纯粹把「教材章节 + 老师人格」拼成提示词上课
 import { corsHeaders, json, uidOk } from './util.js';
 import { bumpUsage } from './store.js';
+import { consumeQuota } from './quota.js';
 import { describeImage } from './media.js';
 
 const C_TIMEOUT = 55000;
@@ -264,6 +265,11 @@ export async function handleCourseStream(req, env) {
 
   const base = (env.LLM_BASE_URL || 'https://api.deepseek.com').replace(/\/+$/, '');
   const url = /\/v\d+$/.test(base) ? `${base}/chat/completions` : `${base}/v1/chat/completions`;
+  // 和老师对话也要额度，一次一条
+  if (uid) {
+    const q = await consumeQuota(env, uid, 1);
+    if (!q.ok) return json({ error: 'quota_exceeded', left: q.quota ? q.quota.left : 0, message: '额度已用完，请联系管理员发放' }, 402, cors);
+  }
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), C_TIMEOUT);
   let upstream;
@@ -290,7 +296,6 @@ export async function handleCourseStream(req, env) {
   }
   // 流一旦开始就放开超时，让上游自己收尾
   setTimeout(() => clearTimeout(timer), 0);
-  try { await bumpUsage(env, uid); } catch (_) {}
   return new Response(upstream.body, {
     status: 200,
     headers: {

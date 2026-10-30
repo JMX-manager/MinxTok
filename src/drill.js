@@ -1,3 +1,4 @@
+import { consumeQuota } from './quota.js';
 // 刷题（v3.20）：按「学科 + 年级 + 难度」生成一组客观题，缓存进 KV，反复刷不重复烧模型
 import { corsHeaders, json, uidOk } from './util.js';
 
@@ -461,6 +462,12 @@ export async function handleDrill(req, env) {
   if (!scope.chapter) scope.section = '';
   const key = dBankKey(subject, grade, lv, scope, typeTag);
   const legacyKey = scope.chapter ? null : `drillbank:v2:${subject}:${grade}:${lv}`;
+
+  // 出一套题算一次额度（后台补题不算，那个不是用户主动要的）
+  if (body.action !== 'fill') {
+    const q = await consumeQuota(env, uid, 1);
+    if (!q.ok) return json({ error: 'quota_exceeded', left: q.quota ? q.quota.left : 0, message: '额度已用完，请联系管理员发放' }, 402, cors);
+  }
 
   // 补题模式：只往题库里加一批，不返回题目
   if (body.action === 'fill') {

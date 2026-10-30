@@ -1,5 +1,6 @@
 // 账号体系：手机号 + 短信验证码注册，手机号/老邮箱账号 + 密码登录
 // 邮箱注册与邮箱验证码已下线；已有账号数据不动，仍可用邮箱 + 密码登录
+import { grantSignupQuota } from './quota.js';
 import { corsHeaders, json } from './util.js';
 import { checkSmsCode, phoneOk, normalizePhone } from './sms.js';
 
@@ -89,6 +90,9 @@ export async function handleRegister(req, env) {
   const now = Date.now();
   await env.DB.prepare('INSERT INTO users (id,email,phone,password_hash,salt,created_at) VALUES (?,?,?,?,?,?)')
     .bind(id, email, phone || null, pwd, salt, now).run();
+
+  // 新人礼：注册即送 20 额度，用完等管理员发放（2026-10-30 定）
+  try { await grantSignupQuota(env, id); } catch (_) {}
 
   const token = randHex(24);
   await env.MINXTOK_KV.put(`sess:${token}`, JSON.stringify({ id, email, at: now }), { expirationTtl: SESSION_TTL });

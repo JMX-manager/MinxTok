@@ -460,7 +460,6 @@ function homeHtml() {
   return `
     <div class="pts-bar">
       <div class="pts-sum"><span>总积分</span><b id="ptsTotal">${wallet.total}</b></div>
-      <button class="game-btn" id="ptsRedeem" type="button">兑换额度</button>
     </div>
     <div class="study-grid">${blocks}</div>
     <div class="pts-modal" id="ptsModal" hidden>
@@ -641,7 +640,13 @@ function watchStatusWrap(status) {
   ro.observe(status);
 }
 
-function openGame(key) {
+async function openGame(key) {
+  // 玩一次扣一额度（2026-10-30 起），余额不够就进不去
+  const pay = await spendQuota(1);
+  if (!pay.ok) {
+    toast(pay.error === 'quota_exceeded' ? '额度用完了，联系管理员发放' : '额度扣不动，稍后再试');
+    return;
+  }
   // 上一轮退出时可能停在暂停态，进游戏一律先解除
   gamePaused = false;
   document.body.classList.remove('game-paused');

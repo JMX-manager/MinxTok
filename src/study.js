@@ -2,6 +2,7 @@
 // 全部走同一个 LLM 通道；解题与练习会额外产出画图脚本（SVG），前端直接渲
 import { corsHeaders, json, uidOk } from './util.js';
 import { getUsage, bumpUsage } from './store.js';
+import { consumeQuota } from './quota.js';
 import { describeImage } from './media.js';
 
 const STUDY_TIMEOUT = 90000;
@@ -364,12 +365,12 @@ export async function handleStudy(req, env) {
     }
   }
   messages.push({ role: 'user', content: `${input}${imageNote}${extra ? `\n\n【补充要求】${String(extra).slice(0, 400)}` : ''}${drawHint}` });
+  { const q = await chargeStudy(env, uid, cors); if (q) return q; }
   let answer = await callLLM(env, messages);
   // 上游偶尔空手而归（推理档把预算全花在思考上），别让用户自己点第二次
   if (!answer) answer = await callLLM(env, messages, 6000);
   if (!answer) return json({ error: 'llm_failed', message: '这次没生成出来，再试一次' }, 502, cors);
 
-  try { await bumpUsage(env, uid); } catch (_) {}
   return json({ ok: true, mode, answer, drew: draw && /\[\[draw:/.test(answer) }, 200, cors);
 }
 
@@ -419,6 +420,7 @@ export async function handleStudyStream(req, env) {
 
   const base = (env.LLM_BASE_URL || 'https://api.deepseek.com').replace(/\/+$/, '');
   const url = /\/v\d+$/.test(base) ? `${base}/chat/completions` : `${base}/v1/chat/completions`;
+  { const q = await chargeStudy(env, uid, cors); if (q) return q; }
   let upstream;
   try {
     upstream = await fetch(url, {
@@ -440,8 +442,7 @@ export async function handleStudyStream(req, env) {
   if (!upstream.ok || !upstream.body) {
     return json({ error: 'llm_failed', message: '这次没生成出来，再试一次' }, 502, cors);
   }
-  // 发出即计次，和聊天页的额度口径保持一致
-  try { await bumpUsage(env, uid); } catch (_) {}
+  // 额度已在调用前扣过，这里不再重复计次
   return new Response(upstream.body, {
     status: 200,
     headers: {
@@ -451,6 +452,13 @@ export async function handleStudyStream(req, env) {
       'X-Accel-Buffering': 'no',
     },
   });
+}
+
+// 学习中心统一收费：对话、刷题、老师答疑都算一次，余额不够直接挡在模型前面
+async function chargeStudy(env, uid, cors) {
+  const res = await consumeQuota(env, uid, 1);
+  if (res.ok) return null;
+  return json({ error: 'quota_exceeded', left: res.quota ? res.quota.left : 0, need: 1, message: '额度已用完，请联系管理员发放' }, 402, cors);
 }
 
 // 错题本 / 生词本：存 D1
@@ -652,6 +660,7 @@ export async function handleSceneWrap(req, env) {
   if (!list.length) return json({ error: 'empty' }, 400, cors);
   let summary = null;
   if (env.LLM_API_KEY) {
+    { const q = await chargeStudy(env, uid, cors); if (q) return q; }
     const answer = await callLLM(env, [
       { role: 'system', content: sceneWrapPrompt(scene || {}, list) },
       { role: 'user', content: '请给这一轮对话出结算。' },
@@ -672,6 +681,5 @@ export async function handleSceneWrap(req, env) {
   summary.turns = list.length;
   summary.userTurns = userTurns;
   summary.credits = credits;
-  try { await bumpUsage(env, uid); } catch (_) {}
   return json({ ok: true, summary }, 200, cors);
 }

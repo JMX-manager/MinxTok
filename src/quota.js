@@ -1,14 +1,16 @@
-// 额度：基础额度 + 永久加成 + 限时赠送 + 申请与兑换码
+// 额度：余额制（注册礼 20 + 管理员发放/充值 + 兑换码），用完即停
 import { corsHeaders, json, uidOk, getRuntimeConfig, isAdmin, dayKey, adminGate } from './util.js';
 import { getUsage, addUsage } from './store.js';
 
 const QUOTA_CAP = 5000;
 
-// 额度模型（2026-10-28 改，明轩定的）：
-//   ① 兑换池 = 学分/游戏积分换来的额度，永久保存，用不完一直留着，绝不并进每日上限；
-//   ② 限时包 = 兑换码/赠送/申请批下来的额度，带有效期，同样独立成池；
-//   ③ 每日额度 = 站点固定额度，每天重置，只有前两个池子都空了才会动它。
-// 扣额度顺序：兑换池 → 限时包（快到期的先扣）→ 每日额度。
+// 额度模型（2026-10-30 改，明轩定的「余额制」）：
+//   ① 不再每天自动补额度。余额只减不增，用完就停，等管理员手动发放。
+//   ② 余额 = 兑换池(stock) + 限时包(grants)。这两个池子对用户就是同一个余额，扣的时候先扣快到期的。
+//   ③ 只有三种情况会让余额增加：注册礼（20）、管理员发放/充值到账、兑换码。
+//   ④ 学习中心（对话/刷题/老师）和游戏都要扣，且任何玩法都不能把额度赚回来。
+export const SIGNUP_QUOTA = 20;
+
 export async function quotaState(env, uid) {
   const cfg = await getRuntimeConfig(env);
   const used = await getUsage(env, uid);
@@ -33,14 +35,26 @@ export async function quotaState(env, uid) {
   if (grants.length !== raw.length) {
     try { await env.MINXTOK_KV.put(`grants:${uid}`, JSON.stringify(grants)); } catch (_) {}
   }
-  const dailyLimit = Math.min(cfg.dailyQuota, QUOTA_CAP);
-  const dailyLeft = Math.max(dailyLimit - used, 0);
   const grantLeft = grants.reduce((s, g) => s + g.left, 0);
-  const poolLeft = stock + grantLeft;
-  const left = Math.min(dailyLeft + poolLeft, QUOTA_CAP);
+  const balance = Math.min(stock + grantLeft, QUOTA_CAP);
+  const dailyQuota = Math.min(cfg.dailyQuota, QUOTA_CAP);
   return {
-    used, bonus: 0, stock, stockLeft: stock, grants, dailyLimit, dailyLeft, poolLeft,
-    grantSum: grantLeft, limit: dailyLimit, left, max: QUOTA_CAP,
+    used,
+    bonus: 0,
+    stock,
+    stockLeft: stock,
+    grants,
+    // 每日额度已经取消，这几个字段只为兼容老前端保留，一律报 0
+    dailyLimit: 0,
+    dailyLeft: 0,
+    dailyQuota,
+    balanceMode: true,
+    poolLeft: stock + grantLeft,
+    grantSum: grantLeft,
+    limit: balance,
+    left: balance,
+    balance,
+    max: QUOTA_CAP,
   };
 }
 
@@ -60,25 +74,15 @@ export async function addStock(env, uid, n) {
   return next;
 }
 
-// 扣额度：先扣兑换池，再扣限时包（快过期的先扣），最后才扣每日额度。
-// 这样换来的额度用不完就留着，也不会把每日上限顶高。
+// 扣额度：先扣快到期的限时包，再扣永久池。余额不够就整次失败，不做任何透支。
 export async function consumeQuota(env, uid, n = 1) {
   const st = await quotaState(env, uid);
   const needTotal = Math.max(1, Math.floor(Number(n) || 1));
-  if (st.left < needTotal) return { ok: false, quota: st };
+  if (st.left < needTotal) return { ok: false, quota: st, need: needTotal };
   let need = needTotal;
   const from = [];
-  // ① 兑换池
-  if (need > 0 && st.stock > 0) {
-    const take = Math.min(st.stock, need);
-    const rest = st.stock - take;
-    if (rest > 0) await env.MINXTOK_KV.put(`stock:${uid}`, String(rest));
-    else await env.MINXTOK_KV.delete(`stock:${uid}`);
-    need -= take;
-    from.push('stock');
-  }
-  // ② 限时包：快到期的先扣
-  if (need > 0) {
+  // ① 限时包：快到期的先扣
+  if (need > 0 && st.grants.length) {
     const grants = st.grants.map(g => ({ ...g }));
     let took = 0;
     for (const g of grants) {
@@ -93,14 +97,25 @@ export async function consumeQuota(env, uid, n = 1) {
       from.push('grant');
     }
   }
-  // ③ 最后才动每日额度
-  if (need > 0) {
-    await addUsage(env, uid, need);
-    from.push('daily');
-    need = 0;
+  // ② 永久池
+  if (need > 0 && st.stock > 0) {
+    const take = Math.min(st.stock, need);
+    const rest = st.stock - take;
+    if (rest > 0) await env.MINXTOK_KV.put(`stock:${uid}`, String(rest));
+    else await env.MINXTOK_KV.delete(`stock:${uid}`);
+    need -= take;
+    from.push('stock');
   }
-  const used = await getUsage(env, uid);
-  return { ok: true, used, from: from.length > 1 ? 'mixed' : (from[0] || 'daily'), quota: await quotaState(env, uid) };
+  // 两步之间被别人抢走余额，就老实失败，别把负数写进余额
+  if (need > 0) return { ok: false, quota: await quotaState(env, uid), need: needTotal };
+  try { await addUsage(env, uid, needTotal); } catch (_) {}
+  return { ok: true, used: await getUsage(env, uid), from: from.join('+') || 'stock', quota: await quotaState(env, uid) };
+}
+
+// 注册礼：新人上线先给 20，用完等管理员发
+export async function grantSignupQuota(env, uid) {
+  try { await addStock(env, uid, SIGNUP_QUOTA); } catch (_) {}
+  return SIGNUP_QUOTA;
 }
 
 export async function handleQuota(req, env) {
@@ -125,25 +140,11 @@ export async function handleGameSpend(req, env) {
   return json({ ok: true, spent: amount, quota: res.quota }, 200, cors);
 }
 
-// 游戏积分兑换额度：每天最多 +20，服务端限次，防止客户端刷
+// 游戏积分兑换额度：2026-10-30 起关闭。额度只能由管理员发放或充值到账，
+// 任何玩法都不许把额度赚回来（否则就成了刷额度入口）。
 export async function handleGameReward(req, env) {
   const cors = corsHeaders(env);
-  let body = {};
-  try { body = await req.json(); } catch { return json({ error: 'invalid_json' }, 400, cors); }
-  const uid = body.uid;
-  const n = Math.floor(Number(body.quota));
-  if (!uidOk(uid)) return json({ error: 'invalid_uid' }, 400, cors);
-  if (!Number.isInteger(n) || n < 1 || n > 20) return json({ error: 'invalid_amount' }, 400, cors);
-  const day = dayKey();
-  const key = `gameReward:${uid}:${day}`;
-  const used = Number((await env.MINXTOK_KV.get(key)) || '0');
-  // 每天最多兑换 20 次额度（按次数和点数同一天封顶）
-  if (used + n > 20) return json({ error: 'daily_cap', used, cap: 20 }, 429, cors);
-  // 换来的额度进永久兑换池（stock），不抬高每日上限，也不按天作废
-  await addStock(env, uid, n);
-  await env.MINXTOK_KV.put(key, String(used + n));
-  const st = await quotaState(env, uid);
-  return json({ ok: true, granted: n, remaining: 20 - used - n, poolLeft: st.poolLeft, quota: st }, 200, cors);
+  return json({ error: 'reward_disabled', message: '积分兑换额度已关闭' }, 410, cors);
 }
 
 // 申请额度
@@ -201,10 +202,14 @@ export async function handleDecide(req, env) {
   if (!gate || !gate.meta || gate.meta.changes === 0) return json({ error: 'already_decided' }, 410, cors);
 
   if (approve) {
-    const grants = ((await env.MINXTOK_KV.get(`grants:${row.uid}`, 'json')) || []).filter(g => g && g.exp > Date.now());
-    const exp = Date.now() + (Number(ttlSec) > 0 ? Number(ttlSec) * 1000 : 30 * 86400 * 1000);
-    grants.push({ amount: row.amount, exp, left: Number(row.amount || 0) });
-    await env.MINXTOK_KV.put(`grants:${row.uid}`, JSON.stringify(grants));
+    // 不填有效期就是永久发放（直接进余额），填了才走限时包
+    if (Number(ttlSec) > 0) {
+      const grants = ((await env.MINXTOK_KV.get(`grants:${row.uid}`, 'json')) || []).filter(g => g && g.exp > Date.now());
+      grants.push({ amount: row.amount, exp: Date.now() + Number(ttlSec) * 1000, left: Number(row.amount || 0) });
+      await env.MINXTOK_KV.put(`grants:${row.uid}`, JSON.stringify(grants));
+    } else {
+      await addStock(env, row.uid, Number(row.amount || 0));
+    }
   }
   return json({ ok: true }, 200, cors);
 }
