@@ -1207,6 +1207,30 @@ function pinBottom() {
   jumpBottom();
 }
 
+// 进聊天页的落地动作：先把列表藏起来，直接跳到底部，再露出来。
+// 以前是先画在顶部、隔一帧再贴底，眼睛看到的就是"进去跳一下"（明轩 2026-10-30）。
+// 后面几百毫秒的补底也统一改成硬跳，不再走跟随缓动。
+function enterSettle() {
+  const ep = stickEpoch;
+  chat.style.visibility = 'hidden';
+  const reveal = () => {
+    if (ep !== stickEpoch || userTookOver) { chat.style.visibility = ''; return; }
+    jumpBottom();
+    chat.style.visibility = '';
+  };
+  requestAnimationFrame(() => {
+    jumpBottom();
+    requestAnimationFrame(reveal);
+  });
+  setTimeout(() => { if (chat.style.visibility === 'hidden') reveal(); }, 1200);
+  [60, 160, 340, 640].forEach((ms) => setTimeout(() => {
+    if (ep === stickEpoch && stickBottom && !userTookOver) jumpBottom();
+  }, ms));
+  if (document.fonts && document.fonts.ready && document.fonts.ready.then) {
+    document.fonts.ready.then(() => { if (ep === stickEpoch && stickBottom && !userTookOver) jumpBottom(); });
+  }
+}
+
 function scrollBottom(force) {
   // 用户往上翻看旧消息时别再把他拽回底部，只在贴近底部时跟随
   if (force) { jumpBottom(); return; }
@@ -3585,7 +3609,7 @@ function aboutPage() {
 /* ---------- 更新日志 ---------- */
 const CHANGELOG = [
   {
-    ver: '6.3.8',
+    ver: '6.3.9',
     date: '2026-10-30',
     zh: [
       '情绪中心不再乱跳：只统计你自己说的话，样本少的时候按十二次算，一条困惑不会再顶成百分之百；建议文案也不再每说一句话就重写',
@@ -6500,8 +6524,7 @@ async function restoreHistory() {
       if (cachedShown) {
         userTookOver = false;
         stickBottom = true;
-        scrollBottom();
-        requestAnimationFrame(scrollBottom);
+        enterSettle();
       }
     } catch (_) { cachedShown = false; }
   }
@@ -6568,11 +6591,7 @@ async function restoreHistory() {
     resolvePendingMusic();
     // 图片/卡片撑开高度会有延迟，多补几次，保证落地就在最底部；
     // 但只要用户在这几百毫秒里自己滑过，就一次都不补（不然就是“被拖在底部”）
-    if (!userTookOver) {
-      scrollBottom();
-      requestAnimationFrame(scrollBottom);
-      [60, 160, 320, 600].forEach(ms => scrollBottomSoon(ms));
-    }
+    if (!userTookOver) enterSettle();
   } catch (e) {
     if (seq !== restoreSeq) return;
     console.warn('restoreHistory failed', e);
