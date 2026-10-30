@@ -573,6 +573,87 @@ async function sendMessage(text, extra = {}) {
     explain: ['Lining up the concepts', 'Tracing how it works'],
     base:    ['Making sense of the question', 'Working out an answer'],
   };
+  // 明轩 2026-10-30：那句概括要具体到对象，不许再是「理解这个概念」「查阅资料」这种空壳。
+  // 目标是把问句里的对象抠出来：讲平衡力 → 平衡力；用运动学公式求位移 → 位移 + 运动学公式。
+  function stageTopic(raw) {
+    let s = String(raw || '')
+      .replace(/\[\[[\s\S]*?\]\]/g, ' ')
+      .replace(/[？?！!。，,、；;：:"“”‘’'（）()【】\[\]\s]+/g, '');
+    if (!s) return '';
+    s = s.replace(/^(?:请问|问一下|我想问|想问|我想知道|想知道|帮我|帮忙|给我|麻烦你|麻烦|你能不能|你能|你可以|可以|能不能|请)+/, '');
+    const hadLook = /^(?:一下|查一下|查查|查|搜一下|搜搜|搜索|搜|找一下|找找|查找|查询|找|看看|了解)/.test(s);
+    s = s.replace(/^(?:一下|查一下|查查|查|搜一下|搜搜|搜索|搜|找一下|找找|查找|查询|找|看看)/, '');
+    s = s.replace(/^(?:用|使用|利用|按照|根据|套用)/, '');
+    const tidy = (x) => String(x || '')
+      .replace(/^(?:一下|一讲|讲讲|讲|说说|说说看|聊|聊聊|谈|谈谈|介绍|解释|分析|看看|看)+/, '')
+      .replace(/的?(?:有关)?(?:资料|内容|信息|知识|知识点|说法|介绍|详情)$/, '')
+      .replace(/^(?:一下|的)+/, '')
+      .trim();
+    let m;
+    if ((m = s.match(/^(?:什么是|啥是)(.+)$/))) return tidy(m[1]).slice(0, 14);
+    if ((m = s.match(/^(.{1,14}?)(?:是什么|是啥|的意思|的含义|的定义)$/))) return tidy(m[1]).slice(0, 14);
+    if ((m = s.match(/^(.{1,14}?)(?:为什么|为啥|的原因|的原理|的用途|的作用|的性质|的成分|的公式|怎么算|如何计算|怎么求|怎么判断|的关系|的区别|的特点)/))) return tidy(m[1]).slice(0, 14);
+    if ((m = s.match(/^(?:讲讲|说说|聊聊|谈谈|介绍一下|解释一下|解释|介绍|分析一下|分析|了解一下|了解|学一下)(.{1,16})$/))) {
+      const t = m[1].replace(/^一下/, '');
+      const keep = t.match(/^(.{1,12}?)(的性质|的成分|的特点|的作用|的用途|的原理)$/);
+      return (keep ? keep[1] + keep[2] : t.replace(/的(?:概念|定义|含义|意思)$/, '')).slice(0, 16);
+    }
+    if ((m = s.match(/^(?:如何|怎么|怎样)(?:计算|求|判断|证明|理解)(.{1,14})$/))) return tidy(m[1]).slice(0, 14);
+    if ((m = s.match(/^(?:计算|求|算出|求解|解)(.{1,14})$/))) return tidy(m[1]).slice(0, 14);
+    if ((m = s.match(/^.{1,12}?(?:求|计算|算出|求解|等于多少)(.{1,14})$/))) return tidy(m[1]).slice(0, 14);
+    if ((m = s.match(/^(?:为什么|为啥)(.{1,18})$/))) {
+      const t = m[1].split(/(?:要|会|能|不能|不|该|需|应该|可以|使得|使)/)[0];
+      const ok = tidy(t).slice(0, 14);
+      if (ok.length >= 2) return ok;
+    }
+    // 「查一下平衡力的资料」这一类：前缀去掉后剩下的就是对象
+    if (hadLook) { const ok = tidy(s).slice(0, 14); if (ok.length >= 2 && ok.length <= 14) return ok; }
+    return '';
+  }
+  // 计算类还要认出用哪套公式：说「使用运动学公式计算位移」，别只说「列式计算」
+  function stageMethod(raw) {
+    const q = String(raw || '');
+    if (/运动学公式|运动公式|速度公式|位移公式/.test(q)) return '使用运动学公式计算';
+    if (/牛顿第二定律|牛顿定律/.test(q)) return '用牛顿第二定律算';
+    if (/动能定理/.test(q)) return '用动能定理算';
+    if (/机械能守恒/.test(q)) return '用机械能守恒算';
+    if (/欧姆定律/.test(q)) return '用欧姆定律算';
+    if (/化学方程式|配平/.test(q)) return '按化学方程式配平算';
+    return '';
+  }
+  // 带对象的短语池：没有对象就退回原来那套通用说法
+  const STAGE_TOPIC_PHRASE = {
+    why:     ['理解{t}的概念', '梳理{t}的关系', '分析{t}的原理', '判断{t}的条件是否成立'],
+    look:    ['查阅{t}的有关资料', '核对{t}的信息', '查找{t}的知识点'],
+    calc:    ['按{t}的公式算', '把{t}代进式子算', '验算{t}的结果'],
+    explain: ['理清{t}的脉络', '讲一遍{t}的来龙去脉', '把{t}的定义对齐'],
+    sum:     ['归纳{t}的要点', '提炼{t}的关键'],
+    sort:    ['把{t}按顺序理清'],
+    plan:    ['安排{t}的步骤'],
+    draft:   ['组织{t}的措辞'],
+    translate: ['逐句翻译{t}', '对照原文核对{t}'],
+    geo:     ['解析{t}的位置', '核对{t}的位置'],
+  };
+  const STAGE_TOPIC_EN = {
+    why:     ['Working out what {t} means', 'Tracing how {t} works', 'Checking when {t} holds'],
+    look:    ['Looking up {t}', 'Checking the notes on {t}'],
+    calc:    ['Working {t} out step by step', 'Plugging {t} into the formula'],
+    explain: ['Getting {t} straight', 'Walking through {t}'],
+    sum:     ['Pulling the key points on {t}'],
+    translate: ['Translating {t}'],
+  };
+  function stagePool(kind, topic, question) {
+    const zh = getLang() !== 'en';
+    const dict = zh ? STAGE_TOPIC_PHRASE : STAGE_TOPIC_EN;
+    const tpl = dict[kind];
+    if (topic && tpl) {
+      const method = kind === 'calc' ? stageMethod(question) : '';
+      if (method) return [`${method}${topic}`, `按${topic}的公式再验一遍`];
+      return tpl.map(x => x.replace(/\{t\}/g, topic));
+    }
+    const pool = (zh ? STAGE_PHRASE : STAGE_EN)[kind];
+    return pool || (zh ? STAGE_PHRASE.base : STAGE_EN.base);
+  }
   let stagePick = 0;
   function stageKind(question) {
     const q = String(question || '');
@@ -594,7 +675,7 @@ async function sendMessage(text, extra = {}) {
     if (stage === 'card') return zh ? '正在智能排版' : 'Laying it out';
     if (stage === 'image') return zh ? '正在辨认图片内容' : 'Reading the image';
     const kind = stageKind(question);
-    const pool = (zh ? STAGE_PHRASE : STAGE_EN)[kind] || (zh ? STAGE_PHRASE.base : STAGE_EN.base);
+    const pool = stagePool(kind, stageTopic(question), question);
     const i = Math.abs(stagePick++) % pool.length;
     return pool[i];
   }
@@ -3475,7 +3556,7 @@ function aboutPage() {
 /* ---------- 更新日志 ---------- */
 const CHANGELOG = [
   {
-    ver: '6.3.2',
+    ver: '6.3.3',
     date: '2026-10-30',
     zh: [
       '情绪中心不再乱跳：只统计你自己说的话，样本少的时候按十二次算，一条困惑不会再顶成百分之百；建议文案也不再每说一句话就重写',
@@ -7388,15 +7469,15 @@ function boot() {
           if (vh.ac.state === 'suspended') vh.ac.resume();
         }
       } catch (_) {}
-      // 麦克风握手也提前到按下这一刻：权限已给过时通常几十毫秒就回来，
-      // 等到 150ms 才要，卡片就得干等一轮（明轩 2026-10-29：比以前还慢）
-      try { vhWarm(); } catch (_) {}
+      // 麦克风不再一按下就要：轻点输入框是想打字，不该顺手弹出麦克风授权
+      // （明轩 2026-10-30）。等按住过 150ms、确认是要说话，才去握手。
       try { el.classList.add('voice-hold'); } catch (_) {}
       // 手指还按着就先立卡：以前要等 300ms 定时器 + getUserMedia 回来才见卡片，
       // 麦克风慢一点就要干等一秒，手感像卡死（明轩 2026-10-29）
       clearTimeout(vh.preview);
       vh.preview = setTimeout(() => {
         if (!vh.held || vh.target !== el || vh.el) return;
+        try { vhWarm(); } catch (_) {}
         const box0 = vhBuild();
         vhPlace(box0);
         vhSetTip(vhZh() ? '准备录音…' : 'Starting…');

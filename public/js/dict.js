@@ -1058,6 +1058,63 @@ function renderChemSheet(data, error) {
   replayChemIn();
 }
 
+// 化学式也用查词那套小对话框（明轩 2026-10-30 要求回到英语同款，不再另开底部抽屉）
+function chemRow(label, text, asHtml) {
+  const row = document.createElement('div');
+  row.className = 'dp-crow';
+  if (label) {
+    const p = document.createElement('div');
+    p.className = 'dp-pos';
+    p.textContent = label;
+    row.appendChild(p);
+  }
+  const d = document.createElement('div');
+  d.className = 'dp-def';
+  if (asHtml) d.innerHTML = text;
+  else d.textContent = text;
+  row.appendChild(d);
+  return row;
+}
+
+function renderChemPop(data, error) {
+  ensurePop();
+  const d = data || {};
+  const zh = getLang() !== 'en';
+  const f = String(d.formula || '').replace(/[↑↓\s"]/g, '');
+  const display = d.display || chemPretty(f);
+  popWord.textContent = display || '';
+  let name = String(d.name || '').trim();
+  if (!name || name === f || name === display) name = '';
+  const st = String(d.state || '').trim();
+  popPhon.textContent = [name, st].filter(Boolean).join(' · ');
+  popBody.innerHTML = '';
+
+  if (error) {
+    const box = document.createElement('div');
+    box.className = 'dp-empty';
+    box.textContent = error === 'auth'
+      ? (zh ? '登录状态过期了，刷新一下再点。' : 'Session expired. Reload and tap again.')
+      : (zh ? '这次没连上，点这里重试。' : 'Could not reach the lookup. Tap to retry.');
+    box.setAttribute('role', 'button');
+    if (error !== 'auth') {
+      box.addEventListener('click', () => { const el = activeChem; if (el) lookupChem(el, true); });
+    }
+    popBody.appendChild(box);
+    replayReveal();
+    return;
+  }
+
+  if (d.phys) popBody.appendChild(chemRow(zh ? '物理' : 'Physical', d.phys, false));
+  if (d.chem) popBody.appendChild(chemRow(zh ? '化学' : 'Chemical', chemTextHtml(d.chem), true));
+  if (!d.phys && !d.chem) {
+    const box = document.createElement('div');
+    box.className = 'dp-empty';
+    box.innerHTML = `<span class="m-thinking"><span class="th-label">${zh ? '正在查这个式子' : 'Looking this one up'}</span><span class="th-dots"><i></i><i></i><i></i></span></span>`;
+    popBody.appendChild(box);
+  }
+  replayReveal();
+}
+
 // 性质里的方程式走一遍渲染（下标、等号、箭头都排好），其余文字照原样
 function chemTextHtml(text) {
   const src = String(text || '');
@@ -1087,7 +1144,7 @@ function replayChemIn() {
 let activeChem = null;
 
 async function lookupChem(el, force) {
-  ensureChemSheet();
+  ensurePop();
   activeChem = el;
   const f = chemInput(el.dataset.f);
   if (!f) return;
@@ -1095,32 +1152,26 @@ async function lookupChem(el, force) {
   const key = chemKey(f, st);
   const my = ++seq;
   const cached = force ? null : chemCacheGet(key);
-  if (cached) { renderChemSheet(cached); return; }
-  // 先开抽屉、先给标题和价态，正文位置放骨架，别让人对着空白等
-  renderChemSheet({ formula: f, display: chemPretty(f), state: st });
-  // 文字在前、点在后（明轩 2026-10-30：跟思考动画一样，别在文案后面再缀省略号）
-  csBody.innerHTML = '<div class="cs-loading"><span class="m-thinking">' +
-    '<span class="th-label">' + (getLang() === 'en' ? 'Looking this one up' : '正在查这个式子') + '</span>' +
-    '<span class="th-dots"><i></i><i></i><i></i></span></span></div>';
+  if (cached) { renderChemPop(cached); positionPop(el, true); return; }
+  // 先把框立起来（标题先出、正文放动画），别让人对着空白等
+  renderChemPop({ formula: f, display: chemPretty(f), state: st });
+  positionPop(el, true);
   try {
     const r = await fetch(`/api/chem?f=${encodeURIComponent(f)}&s=${encodeURIComponent(st)}&lang=${getLang() === 'en' ? 'en' : 'zh'}`);
     const d = await r.json().catch(() => null);
     if (my !== seq || activeChem !== el) return;
-    // 登录过期时后端只会回 {error:'unauthorized'}，以前这里会当成「没收录」，白让人多点一次
-    if (r.status === 401) {
-      renderChemSheet({ formula: f, display: chemPretty(f), state: st }, 'auth');
-      return;
-    }
+    if (r.status === 401) { renderChemPop({ formula: f, display: chemPretty(f), state: st }, 'auth'); positionPop(el, false); return; }
     if (!d || !d.formula || d.ok === false) {
-      // 模型那边不给就直说，并留一个重试按钮，不再假装查到了
-      renderChemSheet({ formula: f, display: chemPretty(f), state: st }, true);
+      renderChemPop({ formula: f, display: chemPretty(f), state: st }, true);
     } else {
       chemCacheSet(key, d);
-      renderChemSheet(d);
+      renderChemPop(d);
     }
+    positionPop(el, false);
   } catch (_) {
     if (my !== seq || activeChem !== el) return;
-    renderChemSheet({ formula: f, display: chemPretty(f), state: st }, true);
+    renderChemPop({ formula: f, display: chemPretty(f), state: st }, true);
+    positionPop(el, false);
   }
 }
 

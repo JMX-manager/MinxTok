@@ -159,6 +159,31 @@ const TABLE = {
   'Cr2O72-': { name: '重铬酸根离子 Cr₂O₇²⁻', phys: '水溶液呈橙红色，酸性条件下稳定。', chem: '酸性溶液中氧化性很强，自身被还原成绿色的 Cr³⁺，常用于检验酒精（变色后呈绿色）。' },
 };
 
+
+// 速查表里存的是老的长句，弹框只要关键两三句：按分句边界截，宁短不长
+function brief(text, max) {
+  let s = String(text || '').trim();
+  if (!s || s.length <= max) return s;
+  // 先按分句切，能塞几句塞几句，超了就停在上一句，不留半句话
+  const groups = s.split(/[；;]/).map(x => x.trim()).filter(Boolean);
+  let out = '';
+  for (const g of groups) {
+    const next = out ? `${out}；${g}` : g;
+    if (next.length > max) break;
+    out = next;
+  }
+  if (out) return out;
+  // 第一句本身就超长：按逗号继续切
+  const parts = groups[0].split(/[，,]/);
+  let head = '';
+  for (const p of parts) {
+    const next = head ? `${head}，${p}` : p;
+    if (next.length > max) break;
+    head = next;
+  }
+  return (head || parts[0] || '').slice(0, max);
+}
+
 const SUB = { '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4', '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9', '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4', '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9', '⁺': '+', '⁻': '-' };
 
 const STATE_RE = /(?:稀|浓|饱和|澄清|石灰)?(?:水溶液|溶液|气体|粉末|固体|晶体|蒸气|液体|块状|粉末状|浊液|悬浊液)/;
@@ -187,16 +212,16 @@ function pretty(formula) {
 
 const SYSTEM_EN = [
   'You are a middle-school chemistry teacher. The user gives a chemical formula, maybe with a state word (solution, powder, gas, solid).',
-  'Describe that substance in English. Output one JSON object only, no code fence, no explanation:',
-  '{"name":"English name","phys":"physical properties, 30-60 words: colour, state, smell, solubility, melting/boiling point","chem":"chemical properties, 40-90 words, give 1-2 typical reactions with equations using = and up/down arrows","note":"a short note about that state, under 20 words; empty string if none"}',
-  'Only describe the substance that really matches this formula. If unsure about a detail, leave it out; never invent a substance or a reaction.',
+  'Be brief. Output one JSON object only, no code fence, no explanation:',
+  '{"name":"English name","phys":"physical properties, 12-28 words: colour, smell, state, solubility; say toxic if it is","chem":"chemical properties, 18-40 words: what it reacts with, and what it gives if that is the exam point; at most one equation","note":"a short note about that state, under 12 words; empty string if none"}',
+  'No essays, no uses, no long lists. Only the substance that really matches this formula; never invent a reaction.',
 ].join('\n');
 
 const SYSTEM = [
-  '你是一个中学化学老师。用户给出一个化学式（可能附带状态词，如溶液、粉末、气体、固体）。',
-  '请用简体中文介绍这个物质，只输出一个 JSON 对象，不要代码块、不要解释、不要多余文字：',
-  '{"name":"物质的中文名","phys":"物理性质，40~85字，写颜色状态气味溶解性熔点沸点等","chem":"化学性质，60~130字，举1~2个典型反应式，方程式里用 = 和 ↑↓","note":"这种状态下的补充说明，30字内；没有就给空字符串"}',
-  '要求：只写这个化学式真实对应的物质；不确定的细节宁可不写，绝不能编造不存在的物质或反应。',
+  '你是一个中学化学老师，说话很省。用户给出一个化学式（可能附状态词）。',
+  '只输出一个 JSON 对象，不要代码块、不要解释：',
+  '{"name":"物质的中文名","phys":"物理性质，20~45字，只写颜色、气味、状态、溶解性；有毒就写「有毒」，不展开","chem":"化学性质，30~70字，只写能与什么反应；考点相关的可以写生成什么；最多一个方程式，用 = 和 ↑↓","note":"这种状态的补充说明，20字内；没有就给空字符串"}',
+  '别写推断过程、别写用途科普、别列一大串；一句话说完就停。只写这个式子真实对应的物质，不确定的不写，绝不编造。',
 ].join('\n');
 
 function stripFence(t) {
@@ -240,7 +265,7 @@ async function askModel(env, formula, state, lang) {
             : `化学式：${formula}${state ? `；状态：${state}` : ''}` },
         ],
         temperature: 0.2,
-        max_tokens: 900,
+        max_tokens: 420,
         response_format: { type: 'json_object' },
       }),
       signal: ctrl.signal,
@@ -252,13 +277,13 @@ async function askModel(env, formula, state, lang) {
     if (!j) return null;
     const out = {
       name: String(j.name || '').trim().slice(0, 24),
-      phys: String(j.phys || '').trim().slice(0, 260),
-      chem: String(j.chem || '').trim().slice(0, 320),
-      note: String(j.note || '').trim().slice(0, 90),
+      phys: String(j.phys || '').trim().slice(0, 120),
+      chem: String(j.chem || '').trim().slice(0, 180),
+      note: String(j.note || '').trim().slice(0, 60),
     };
     if (!out.name || (!out.phys && !out.chem)) return null;
     // 只剩半句话（被截断/模型偷懒）就不算查到了，交给前端重试
-    if (out.phys && out.phys.length < 14 && (!out.chem || out.chem.length < 14)) return null;
+    if (out.phys && out.phys.length < 8 && (!out.chem || out.chem.length < 8)) return null;
     return out;
   } catch (_) {
     return null;
@@ -279,7 +304,7 @@ export async function handleChem(request, env, ctx) {
 
   const cache = typeof caches !== 'undefined' ? caches.default : null;
   const key = cache
-    ? new Request(`https://minxtok.local/chem/v2/${lang}/${encodeURIComponent(formula)}/${encodeURIComponent(state)}`)
+    ? new Request(`https://minxtok.local/chem/v5/${lang}/${encodeURIComponent(formula)}/${encodeURIComponent(state)}`)
     : null;
   if (cache) {
     const hit = await cache.match(key);
@@ -292,7 +317,7 @@ export async function handleChem(request, env, ctx) {
   // 英文界面不走中文速查表，直接让模型用英文写一份
   const hit = lang === 'zh' ? (TABLE[formula] || null) : null;
   let data = hit
-    ? { name: hit.name, phys: hit.phys, chem: hit.chem, note: '' }
+    ? { name: hit.name, phys: brief(String(hit.phys || '').replace(/（[^）]*）/g, '').replace(/\([^)]*\)/g, ''), 34), chem: brief(hit.chem, 58), note: '' }
     : await askModel(env, formula, state, lang);
   // 一次没成再问一次：Workers AI 偶发抖动，不该让整张卡停在「没连上」
   if (!data && !hit) data = await askModel(env, formula, state, lang);
