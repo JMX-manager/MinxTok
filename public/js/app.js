@@ -523,6 +523,8 @@ async function sendMessage(text, extra = {}) {
   // 具体领域排在通用意图前面：歌名、新闻、视频、识图这些不能被「查/搜/讲讲」抢走
   const STAGE_INTENT = [
     [/天气|气温|预报|下雨|降雪|几度|多少度|穿衣|紫外线|空气质量|湿度|风力|冷不冷|热不热/, 'weather'],
+    // 少量过量这类判断题：先判关系、再总结技巧，别把整句问话塞进模板（明轩 2026-10-30）
+    [/少量|过量|恰好完全反应|谁过量|谁少量|剩余多少|哪个多|谁多/, 'judge'],
     [/歌词|这首歌|放.{0,3}歌|来首|点歌|歌单|音乐|听歌|歌曲|什么歌/, 'music'],
     [/新闻|头条|资讯|热点|时政|最近发生|大事/, 'news'],
     [/视频|短片|影视|剪辑/, 'video'],
@@ -541,7 +543,16 @@ async function sendMessage(text, extra = {}) {
   // 明轩 2026-10-30：这句不是从固定短语里挑一句，而是按意图自己组出来的——
   // 动作词 + 从问句里抠出来的对象，必要时再带数量。所以会出
   // 「理解平衡力的概念」「查阅平衡力的有关资料」「使用运动学公式计算位移」这种话。
-  // 从问句里抠出真正的对象：要的是「平衡力」而不是「这个概念」
+  // 从问句里抠出真正的对象：要的是「平衡力」而不是「这个概念」。
+  // 抠出来还是像整句问话（怎么/谁/一眼/多少…）就不要——宁可退回通用说法，
+  // 也不能拼出「查阅少量过量题，怎么一眼看出谁少量的有关资料」这种话（明轩 2026-10-30）。
+  function okTopic(t) {
+    const x = String(t || '').trim();
+    if (x.length < 2 || x.length > 10) return '';
+    if (/怎么|如何|为什么|谁|哪|多少|是否|一眼|才能|能不能|吗|呢/.test(x)) return '';
+    if (/(看出|判断|算出|求解|理解|解释|分析|比较|做|选)$/.test(x)) return '';
+    return x;
+  }
   function stageTopic(raw) {
     let s = String(raw || '')
       .replace(/\[\[[\s\S]*?\]\]/g, ' ')
@@ -552,32 +563,38 @@ async function sendMessage(text, extra = {}) {
     s = s.replace(/^(?:一下|查一下|查查|查|搜一下|搜搜|搜索|搜|找一下|找找|查找|查询|找|看看)/, '');
     s = s.replace(/^(?:用|使用|利用|按照|根据|套用)/, '');
     const tidy = (x) => String(x || '')
-      .replace(/^(?:一下|一讲|讲讲|讲|说说|说说看|聊|聊聊|谈|谈谈|介绍|解释|分析|看看|看)+/, '')
-      .replace(/的?(?:有关)?(?:资料|内容|信息|知识|知识点|说法|介绍|详情)$/, '')
-      .replace(/^(?:一下|的)+/, '')
+      .replace(/^(?:一下|一讲|讲讲|讲|说说|说说看|聊|聊聊|谈|谈谈|介绍|解释|分析|看看|看|总结|小结|归纳|概括|整理|梳理|写|写出)+/, '')
+      .replace(/^(?:一下|一遍|一份|的)+/, '')
+      .replace(/的?(?:有关)?(?:资料|内容|信息|知识|知识点|说法|详情)$/, '')
+      .replace(/[吗呢吧啊呀嘛]+$/, '')
       .trim();
     let m;
-    if ((m = s.match(/^(?:什么是|啥是)(.+)$/))) return tidy(m[1]).slice(0, 14);
-    if ((m = s.match(/^(.{1,14}?)(?:是什么|是啥|的意思|的含义|的定义)$/))) return tidy(m[1]).slice(0, 14);
-    if ((m = s.match(/^(.{1,14}?)(?:为什么|为啥|的原因|的原理|的用途|的作用|的性质|的成分|的公式|怎么算|如何计算|怎么求|怎么判断|的关系|的区别|的特点)/))) return tidy(m[1]).slice(0, 14);
+    if ((m = s.match(/^(?:什么是|啥是)(.+)$/))) return okTopic(tidy(m[1]));
+    if ((m = s.match(/^(.{1,14}?)(?:是什么|是啥|的意思|的含义|的定义)$/))) return okTopic(tidy(m[1]));
+    if ((m = s.match(/^(.{1,14}?)(?:为什么|为啥|的原因|的原理|的用途|的作用|的性质|的成分|的公式|怎么算|如何计算|怎么求|怎么判断|的关系|的区别|的特点)/))) return okTopic(tidy(m[1]));
     if ((m = s.match(/^(?:讲讲|说说|聊聊|谈谈|介绍一下|解释一下|解释|介绍|分析一下|分析|了解一下|了解|学一下)(.{1,16})$/))) {
       const t = m[1].replace(/^一下/, '');
       const keep = t.match(/^(.{1,12}?)(的性质|的成分|的特点|的作用|的用途|的原理)$/);
-      return (keep ? keep[1] + keep[2] : t.replace(/的(?:概念|定义|含义|意思)$/, '')).slice(0, 16);
+      return okTopic(keep ? keep[1] + keep[2] : t.replace(/的(?:概念|定义|含义|意思)$/, ''));
     }
-    if ((m = s.match(/^(?:如何|怎么|怎样)(?:计算|求|判断|证明|理解)(.{1,14})$/))) return tidy(m[1]).slice(0, 14);
-    if ((m = s.match(/^(?:计算|求|算出|求解|解)(.{1,14})$/))) return tidy(m[1]).slice(0, 14);
-    if ((m = s.match(/^.{1,12}?(?:求|计算|算出|求解|等于多少)(.{1,14})$/))) return tidy(m[1]).slice(0, 14);
+    if ((m = s.match(/^(?:如何|怎么|怎样)(?:计算|求|判断|证明|理解)(.{1,14})$/))) return okTopic(tidy(m[1]));
+    if ((m = s.match(/^(?:计算|求|算出|求解|解)(.{1,14})$/))) return okTopic(tidy(m[1]));
+    if ((m = s.match(/^.{1,12}?(?:求|计算|算出|求解|等于多少)(.{1,14})$/))) return okTopic(tidy(m[1]));
     if ((m = s.match(/^(?:为什么|为啥)(.{1,18})$/))) {
       const t = m[1].split(/(?:要|会|能|不能|不|该|需|应该|可以|使得|使)/)[0];
-      const ok = tidy(t).slice(0, 14);
-      if (ok.length >= 2) return ok;
+      let ok = okTopic(tidy(t));
+      if (ok) return ok;
+      ok = okTopic(tidy(m[1]).replace(/^(?:要|先|再|才|就|得|必须|需要|应该|算|求|用|看|想)+/, '').replace(/^(?:要|先|再|才|就|得|算|求|用|看|想)+/, ''));
+      if (ok) return ok;
     }
-    if (hadLook) { const ok = tidy(s).slice(0, 14); if (ok.length >= 2 && ok.length <= 14) return ok; }
+    if (hadLook) {
+      const ok = okTopic(tidy(s));
+      if (ok) return ok;
+    }
     // 兜底：问句本身就是个短语（翻译全文、二次函数的图像）就直接拿去用；
     // 聊天口吻的句子不硬套，交给 base 的通用说法
-    const core = tidy(s).replace(/[吗呢吧啊呀嘛]+$/, '').replace(/^的+/, '').trim();
-    if (core.length >= 2 && core.length <= 14 && !/^(?:我|你|他|她|它|今天|昨天|明天|刚才|最近|感觉|有点|真的|好像|能不能|可否|这|那)/.test(core)) return core;
+    const core = tidy(s);
+    if (!/^(?:我|你|他|她|它|最近|感觉|有点|真的|好像|能不能|可否|这|那)/.test(core)) return okTopic(core);
     return '';
   }
   // 计算类还要认出用哪套公式：说「使用运动学公式计算位移」，别只说「列式计算」
@@ -591,45 +608,50 @@ async function sendMessage(text, extra = {}) {
     if (/化学方程式|配平/.test(q)) return '按化学方程式配平计算';
     return '';
   }
+  // 明轩 2026-10-30：这句要像在思考，不能像填空。
+  // 每个意图给 [主句, 补句]：主句=动作+对象，补句=接下来要干的事；
+  // 落屏时一半概率只发主句、一半概率两句都发（「判断少量与大量的关系，总结并给出做题技巧」）。
   const STAGE_SAY = {
     weather: () => ['查询实时天气'],
-    music:   (t) => [t ? `检索《${t}》的曲目信息` : '调用QQ音乐曲库检索', '匹配这首歌的信息'],
-    news:    () => ['请求新闻资讯接口'],
-    video:   (t) => [t ? `解析视频「${t}」的内容` : '请求视频解析接口'],
-    ocr:     () => ['调用视觉理解模型识别文字'],
-    translate: (t) => [/全文|整篇|整段|全篇/.test(String(t || '')) || !t ? '翻译全文' : `翻译「${t}」`],
-    geo:     (t) => [t ? `解析${t}的位置` : '解析当前位置', '计算到目的地的路线'],
-    sum:     (t) => [t ? `归纳${t}的要点` : '归纳全文要点', '提炼关键结论'],
+    music:   (t) => [t ? `检索《${t}》的曲目信息` : '检索这首歌的信息', '核对歌手和时长'],
+    news:    () => ['请求新闻资讯接口', '挑出跟你有关的'],
+    video:   (t) => [t ? `解析视频「${t}」的内容` : '请求视频解析接口', '提取里面的要点'],
+    ocr:     () => ['调用视觉理解模型识别文字', '顺便读懂它的意思'],
+    translate: (t) => [/全文|整篇|整段|全篇/.test(String(t || '')) || !t ? '翻译全文' : `翻译「${t}」`, '保持原文的语气'],
+    geo:     (t) => [t ? `解析${t}的位置` : '解析当前位置', '算一下怎么走'],
+    sum:     (t) => [t ? `归纳${t}的要点` : '归纳全文要点', '提炼能用的结论'],
     sort:    (t) => [t ? `把${t}按顺序理清` : '把内容按顺序理清', '分组归类'],
-    look:    (t) => [t ? `查阅${t}的有关资料` : '查阅相关资料', t ? `核对${t}的信息` : '核对已有信息'],
-    why:     (t) => [t ? `理解${t}的概念` : '理解这个概念', t ? `分析${t}的原理` : '梳理其中的原理'],
+    judge:   () => ['判断少量与大量的关系', '总结并给出做题技巧'],
+    look:    (t) => [t ? `查阅${t}的有关资料` : '查阅相关资料', '挑出能用的结论'],
+    why:     (t) => [t ? `理解${t}的概念` : '理清其中的原理', '讲清条件和适用场景'],
     calc:    (t, q) => {
       const m = stageMethod(q);
-      if (m && t) return [`${m}${t}`];
-      return [t ? `按公式计算${t}` : '按公式计算', t ? `验算${t}的结果` : '验算结果'];
+      if (m && t) return [`${m}${t}`, '核对单位和有效数字'];
+      return [t ? `按公式计算${t}` : '按公式计算', '验算一遍结果'];
     },
-    plan:    (t) => [t ? `安排${t}的步骤` : '排出先后顺序', '规划每一步'],
-    draft:   (t) => [t ? `起草${t}` : '起草一版内容', '组织措辞'],
-    explain: (t) => [t ? `讲清${t}` : '理清概念脉络', t ? `捋一遍${t}` : '捋一遍来龙去脉'],
-    base:    (t) => [t ? `理解${t}` : '理清思路再答', t ? `想一想${t}` : '想想怎么答'],
+    plan:    (t) => [t ? `安排${t}的步骤` : '排出先后顺序', '把每一步定下来'],
+    draft:   (t) => [t ? `起草${t}` : '起草一版内容', '调整一下措辞'],
+    explain: (t) => [t ? `讲清${t}` : '理清概念脉络', '捋一遍来龙去脉'],
+    base:    (t) => [t ? `想想${t}` : '理清一下思路', '想好再答'],
   };
   const STAGE_SAY_EN = {
     weather: () => ['Checking the live weather'],
-    music:   (t) => [t ? `Looking up “${t}”` : 'Searching the music library'],
-    news:    () => ['Calling the news feed'],
-    video:   (t) => [t ? `Reading the video “${t}”` : 'Calling the video parser'],
-    ocr:     () => ['Running the vision model on the image'],
-    translate: () => ['Translating the whole text'],
-    geo:     (t) => [t ? `Resolving ${t}` : 'Resolving the location'],
-    sum:     (t) => [t ? `Pulling the key points on ${t}` : 'Pulling the key points'],
-    sort:    (t) => [t ? `Sorting out ${t}` : 'Sorting everything out'],
-    look:    (t) => [t ? `Looking up ${t}` : 'Checking the sources'],
-    why:     (t) => [t ? `Getting ${t} straight` : 'Getting the concept straight'],
-    calc:    (t) => [t ? `Working out ${t}` : 'Working the numbers'],
-    plan:    (t) => [t ? `Laying out the steps for ${t}` : 'Laying out the steps'],
-    draft:   (t) => [t ? `Drafting ${t}` : 'Drafting the wording'],
-    explain: (t) => [t ? `Walking through ${t}` : 'Lining up the concepts'],
-    base:    (t) => [t ? `Thinking about ${t}` : 'Working out an answer'],
+    music:   (t) => [t ? `Looking up “${t}”` : 'Searching the music library', 'matching artist and length'],
+    news:    () => ['Calling the news feed', 'picking what matters to you'],
+    video:   (t) => [t ? `Reading the video “${t}”` : 'Calling the video parser', 'pulling out the key points'],
+    ocr:     () => ['Running the vision model on the image', 'making sense of it'],
+    translate: () => ['Translating the whole text', 'keeping the tone'],
+    geo:     (t) => [t ? `Resolving ${t}` : 'Resolving the location', 'working out the route'],
+    sum:     (t) => [t ? `Pulling the key points on ${t}` : 'Pulling the key points', 'keeping what is usable'],
+    sort:    (t) => [t ? `Sorting out ${t}` : 'Sorting everything out', 'grouping by topic'],
+    judge:   () => ['Working out which reactant runs out first', 'then the shortcut rule'],
+    look:    (t) => [t ? `Looking up ${t}` : 'Checking the sources', 'keeping what is usable'],
+    why:     (t) => [t ? `Getting ${t} straight` : 'Getting the idea straight', 'and when it applies'],
+    calc:    (t) => [t ? `Working out ${t}` : 'Working the numbers', 'checking units and digits'],
+    plan:    (t) => [t ? `Laying out the steps for ${t}` : 'Laying out the steps', 'pinning each one down'],
+    draft:   (t) => [t ? `Drafting ${t}` : 'Drafting the wording', 'shaping the sentences'],
+    explain: (t) => [t ? `Walking through ${t}` : 'Lining up the concepts', 'tracing how it works'],
+    base:    (t) => [t ? `Thinking about ${t}` : 'Making sense of the question', 'then answering'],
   };
   let stagePick = 0;
   function stageKind(question) {
@@ -654,10 +676,14 @@ async function sendMessage(text, extra = {}) {
     const kind = stageKind(question);
     const topic = stageTopic(question);
     const say = (zh ? STAGE_SAY : STAGE_SAY_EN)[kind] || (zh ? STAGE_SAY.base : STAGE_SAY_EN.base);
-    const list = say(topic, question) || [];
-    const pool = list.filter(Boolean);
-    if (!pool.length) return zh ? '理清思路再答' : 'Working out an answer';
-    return pool[Math.abs(stagePick++) % pool.length];
+    const list = (say(topic, question) || []).filter(Boolean);
+    if (!list.length) return zh ? '理清一下思路' : 'Making sense of the question';
+    const head = list[0];
+    const tail = list[1];
+    // 一半只发主句，一半主句+补句：看着像边想边说，不是每次都同一套模板
+    const i = Math.abs(stagePick++);
+    if (tail && i % 2 === 1) return head + (zh ? '，' : ', ') + tail;
+    return head;
   }
 
   const dots = thinking(stageLabel(text, extra.image && !extra.imageDesc ? 'image' : (wantsWeb ? 'web' : '')));
@@ -3536,7 +3562,7 @@ function aboutPage() {
 /* ---------- 更新日志 ---------- */
 const CHANGELOG = [
   {
-    ver: '6.3.5',
+    ver: '6.3.6',
     date: '2026-10-30',
     zh: [
       '情绪中心不再乱跳：只统计你自己说的话，样本少的时候按十二次算，一条困惑不会再顶成百分之百；建议文案也不再每说一句话就重写',
